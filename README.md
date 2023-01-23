@@ -32,11 +32,11 @@ This extension supports the folling model types in the the default directories:
 
 ## Tips
 
-1. You can save the README.md files from models on huggingface to use as your model preview:
+1. You can save the `README.md` file from a models huggingface page to use as your model preview:
 
 ![screenshot of markdown example](https://github.com/CurtisDS/sd-model-preview-xd/raw/main/sd-model-preview-xd-markdown-example.png)
 
-2. You can save the model's Civitai page using File > Save Page As to use the Civitai page as your model preview:
+2. You can save the model's Civitai page (using `Ctrl+S` in your browser) to use the Civitai page as your model preview:
 
 ![screenshot of html example](https://github.com/CurtisDS/sd-model-preview-xd/raw/main/sd-model-preview-xd-html-example.png)
 
