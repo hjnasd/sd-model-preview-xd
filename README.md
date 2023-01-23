@@ -30,5 +30,6 @@ This extension supports the folling model types in the the default directories:
 
 ## Known Issues
 
-- The latest update broke `.html` support
+- Refreshing models with the "Refresh" button in the extra networks section doesnt update the lists
+- On initial load the selected checkpoint preview doesnt load (just choose a new checkpoint and then change back)
 - Now that LoRA models are supported by default I will try to add support to LoRA without needing the extension

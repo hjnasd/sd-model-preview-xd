@@ -75,7 +75,7 @@ def refresh_loras():
 
 def create_html_iframe(file):
 	# create the iframe html code
-	html_code = f'<iframe src="file/{file}"></iframe>'
+	html_code = f'<iframe src="file={file}"></iframe>'
 	return html_code
 
 def create_html_img(file):
@@ -88,7 +88,7 @@ def create_html_img(file):
 	# replace the file name string spaces with %20 so the path will work
 	space_replace = file.replace(" ","%20")
 	# create the html for the image
-	html_code = f'<div class="img-container"><img src=file/{space_replace} onclick="imageZoomIn(event)" />'
+	html_code = f'<div class="img-container"><img src=file={space_replace} onclick="imageZoomIn(event)" />'
 	# if the image has prompt data in the meta data also add some elements to support copying the prompt to clipboard
 	if metadata is not None and metadata.strip() != "":
 		html_code += '<div class="img-meta-ico" title="Copy Metadata" onclick="metaDataCopy(event)"></div>'
@@ -112,9 +112,15 @@ def search_and_display_previews(input_str, paths):
 	# if a markdown file is found
 	md_file = None
 
+	# get the current directory so we can convert absolute paths to relative paths if we need to
+	current_directory = os.getcwd()
+
 	# support the ability to check multiple paths (mainly because lora models can be in multiple directories)
 	for path in paths:
-		cwd = Path(path)
+		# convert the path to a relative path
+		relative_path = os.path.relpath(path, current_directory)
+		cwd = Path(relative_path)
+
 		# loop through all files in the path and any subdirectories
 		for file in glob.glob(os.path.join(cwd, '**'), recursive=True):
 			if html_pattern.match(file):
