@@ -30,6 +30,20 @@ This extension supports the folling model types in the the default directories:
 
 ![screenshot](https://github.com/CurtisDS/sd-model-preview-xd/raw/main/sd-model-preview-xd.png)
 
+## Tips
+
+1. You can save the README.md files from models on huggingface to use as your model preview:
+
+![screenshot of markdown example](https://github.com/CurtisDS/sd-model-preview-xd/raw/main/sd-model-preview-xd-markdown-example.png)
+
+2. You can save the model's Civitai page using File > Save Page As to use the Civitai page as your model preview:
+
+![screenshot of html example](https://github.com/CurtisDS/sd-model-preview-xd/raw/main/sd-model-preview-xd-html-example.png)
+
+3. If you want to keep it clean, create a simple .txt file with the trigger words and save a few sample images:
+
+![screenshot of text and images example](https://github.com/CurtisDS/sd-model-preview-xd/raw/main/sd-model-preview-xd-text-and-image-example.png)
+
 ## Known Issues
 
 - Refreshing models with the "Refresh" button in the extra networks section doesnt update the lists

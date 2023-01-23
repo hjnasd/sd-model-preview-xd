@@ -89,7 +89,7 @@
 	padding: 0 6px;
 	font-size: 22px;
 	cursor: pointer;
-	background: red;
+	background: #f000;
 	border-radius: 5px;
 	display: grid;
 	justify-content: center;
@@ -100,20 +100,19 @@
 	right: 0;
 	width: 30px;
 	height: 30px;
+	transition: background-color 0.3s;
 }
 #cp_modelpreview_xd_html_div .img-meta-ico,
 #em_modelpreview_xd_html_div .img-meta-ico,
 #hn_modelpreview_xd_html_div .img-meta-ico,
 #lo_modelpreview_xd_html_div .img-meta-ico {
 	display: inline-block;
-	opacity: 0;
-	transition: opacity 0.3s;
 }
-#cp_modelpreview_xd_html_div .img-container:hover .img-meta-ico,
-#em_modelpreview_xd_html_div .img-container:hover .img-meta-ico,
-#hn_modelpreview_xd_html_div .img-container:hover .img-meta-ico,
-#lo_modelpreview_xd_html_div .img-container:hover .img-meta-ico {
-	opacity: 1;
+#cp_modelpreview_xd_html_div .img-container .img-meta-ico:hover::before,
+#em_modelpreview_xd_html_div .img-container .img-meta-ico:hover::before,
+#hn_modelpreview_xd_html_div .img-container .img-meta-ico:hover::before,
+#lo_modelpreview_xd_html_div .img-container .img-meta-ico:hover::before {
+	background: #f00;
 }
 
 #cp_modelpreview_xd_html_div .img-container-set,
