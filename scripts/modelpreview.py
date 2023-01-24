@@ -64,6 +64,14 @@ def is_subdirectory(parent_dir, child_dir):
 	
 	return common_prefix == parent_dir and child_dir != parent_dir
 
+def is_dir_in_list(dir_list, check_dir):
+    # Convert all directories in the list to absolute paths
+    dir_list = [os.path.abspath(d) for d in dir_list]
+    # Convert the specified directory to an absolute path
+    check_dir = os.path.abspath(check_dir)
+    # Check if the specified directory is in the list of directories
+    return check_dir in dir_list
+
 def list_all_models():
 	# gets the list of checkpoints
 	model_list = sd_models.checkpoint_tiles()
@@ -225,27 +233,30 @@ def show_model_preview(modelname=None):
 	modelname = seperator.join(modelname.split(seperator)[:-1]) if modelname.count(seperator) > 0 else modelname
 	# create list of directories
 	directories = ['models/Stable-diffusion']
-	if shared.cmd_opts.ckpt_dir is not None:
+	set_dir = shared.cmd_opts.ckpt_dir
+	if set_dir is not None and not is_dir_in_list(directories, set_dir):
 		# WARNING: html files and markdown files that link to local files outside of the automatic1111 directory will not work correctly
-		directories.append(shared.cmd_opts.ckpt_dir)
+		directories.append(set_dir)
 	# get preview for the model
 	return show_preview(modelname.replace(".ckpt","").replace(".safetensors",""), directories)
 
 def show_embedding_preview(modelname=None):
 	# create list of directories
 	directories = ['embeddings']
-	if shared.cmd_opts.embeddings_dir is not None:
+	set_dir = shared.cmd_opts.embeddings_dir
+	if set_dir is not None and not is_dir_in_list(directories, set_dir):
 		# WARNING: html files and markdown files that link to local files outside of the automatic1111 directory will not work correctly
-		directories.append(shared.cmd_opts.embeddings_dir)
+		directories.append(set_dir)
 	# get preview for the model
 	return show_preview(modelname, directories)
 
 def show_hypernetwork_preview(modelname=None):
 	# create list of directories
 	directories = ['models/hypernetworks']
-	if shared.cmd_opts.hypernetwork_dir is not None:
+	set_dir = shared.cmd_opts.hypernetwork_dir
+	if set_dir is not None and not is_dir_in_list(directories, set_dir):
 		# WARNING: html files and markdown files that link to local files outside of the automatic1111 directory will not work correctly
-		directories.append(shared.cmd_opts.hypernetwork_dir)
+		directories.append(set_dir)
 	# remove everything after the last instance of '(' in the model name
 	seperator = '('
 	modelname = seperator.join(modelname.split(seperator)[:-1]) if modelname.count(seperator) > 0 else modelname
@@ -260,15 +271,20 @@ def show_lora_preview(modelname=None):
 		directories.append("models/lora")
 
 	# add directories from the builtin lora extension if exists
-	if shared.cmd_opts.lora_dir is not None and shared.cmd_opts.lora_dir not in directories:
-		directories.append(shared.cmd_opts.lora_dir)
+	set_dir = shared.cmd_opts.lora_dir
+	if set_dir is not None and not is_dir_in_list(directories, set_dir):
+		# WARNING: html files and markdown files that link to local files outside of the automatic1111 directory will not work correctly
+		directories.append(set_dir)
 
 	# add directories from the thirdparty lora extension if exists
 	if additional_networks is not None:
 		# use the same pattern as the additional_networds.py extention to build up a list of paths to check for lora models and preview files
 		directories.append(additional_networks.lora_models_dir)
+		set_dir = additional_networks.lora_models_dir
+		if set_dir is not None and not is_dir_in_list(directories, set_dir):
+			directories.append(set_dir)
 		extra_lora_path = shared.opts.data.get("additional_networks_extra_lora_path", None)
-		if extra_lora_path and os.path.exists(extra_lora_path) and extra_lora_path not in directories:
+		if extra_lora_path and os.path.exists(extra_lora_path) and not is_dir_in_list(directories, extra_lora_path):
 			directories.append(extra_lora_path)
 
 	# remove everything after the last instance of '(' in the model name
