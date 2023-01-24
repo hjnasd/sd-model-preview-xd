@@ -21,7 +21,7 @@ This extension supports the folling model types in the the default directories:
 - SD Checkpoints
 - Embeddings
 - Hypernetworks
-- LoRA (If the [Additional Networks](https://github.com/kohya-ss/sd-webui-additional-networks.git) extension is also installed)
+- LoRA
 
 ## Usage
 1. After creating the preview files select the Model Preview tab in web ui and then the type of model you want to preview
