@@ -1,5 +1,5 @@
 # sd-model-preview-xd
-Extension for Automatic1111 Stable Diffusion WebUI to display previews for custom models.
+Extension for [Automatic1111 Stable Diffusion WebUI](https://github.com/AUTOMATIC1111/stable-diffusion-webui) to display previews for custom models.
 
 ## About
 With so many new models appearing it's becoming harder to keep track of what models output what styles and what tags are used to call these styles.
