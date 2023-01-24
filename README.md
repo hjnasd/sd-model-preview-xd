@@ -44,17 +44,11 @@ This extension supports the folling model types in the the default directories:
 
 ![screenshot of text and images example](https://github.com/CurtisDS/sd-model-preview-xd/raw/main/sd-model-preview-xd-text-and-image-example.png)
 
-## Known Issues
-
-- Refreshing models with the "Refresh" button in the extra networks section doesnt update the lists
-- On initial load the selected checkpoint preview doesnt load (just choose a new checkpoint and then change back)
-- Now that LoRA models are supported by default I will try to add support to LoRA without needing the extension
-
 ## Symlink workaround
 
-The latest version of gradio (the front end software) doesn't seem to support symlinks for linking files. To work around this use Automatic1111's built in arguments for adding additional model directories.
+The latest version of gradio (the software Automatic1111 is built on) doesn't seem to support symlinks for linking files in the webui. To work around this use Automatic1111's built in arguments for altering the model directories.
 
-Edit your web-user.bat COMMANDLINE_ARGS to include the custom directory argument for each model type:
+Edit your `web-user.bat` `COMMANDLINE_ARGS` to include the custom directory argument for each model type:
 
 `--ckpt-dir "D:\\my models\\checkpoints"`
 
@@ -62,10 +56,12 @@ Edit your web-user.bat COMMANDLINE_ARGS to include the custom directory argument
 
 `--embeddings-dir "D:\\my models\\embeddings"`
 
+`--lora-dir "D:\\my models\\lora"`
+
 If you wanted to use all the settings at once your COMMANDLINE_ARGS line would look something like this:
 
 ```
-set COMMANDLINE_ARGS=--xformers --api --ckpt-dir "D:\\my models\\checkpoints" --hypernetwork-dir "D:\\my models\\hypernetworks" --embeddings-dir "D:\\my models\\embeddings"
+set COMMANDLINE_ARGS=--xformers --api --ckpt-dir "D:\\my models\\checkpoints" --hypernetwork-dir "D:\\my models\\hypernetworks" --embeddings-dir "D:\\my models\\embeddings" --lora-dir "D:\\my models\\lora"
 ```
 
-You would still put your preview files in the default folder because they need to be inside your automatic1111 directory otherwise you will get an error when loading the previews.
+If you change one of the model directories to point to a directory outside of your Automatic1111 install directory please note that it is suggested you keep your preview files in the default directories (they will still be loaded). If you must put your preview files in a directory outside of the Automatic1111 directory keep in mind that images will be referenced by converting them to base64 strings which could cause more load times (probably minor) and if you use an html or markdown preview file that internally links to another file on the local system there may be issues with resolving those links due to the limitations of the webui server. Again, for best support it is recommended that you keep your preview files within the default directories.

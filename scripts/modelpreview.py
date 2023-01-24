@@ -15,6 +15,8 @@ from modules.textual_inversion import textual_inversion
 from modules import script_callbacks, sd_models, shared, sd_hijack
 
 from PIL import Image
+import base64
+from bs4 import BeautifulSoup
 
 import importlib.util
 
@@ -31,39 +33,85 @@ def import_lora_module():
 		additional_networks = None
 	return additional_networks
 
+def import_lora_module_builtin():
+	# import/update the lora module if its available from the builtin extensions
+	try:
+		spec = importlib.util.find_spec('extensions-builtin.Lora.lora')
+		if spec:
+			additional_networks_builtin = importlib.util.module_from_spec(spec)
+			spec.loader.exec_module(additional_networks_builtin)
+		else:
+			additional_networks_builtin = None
+	except:
+		additional_networks_builtin = None
+	return additional_networks_builtin
+
 # try and get the lora module
 additional_networks = import_lora_module()
+additional_networks_builtin = import_lora_module_builtin()
 
 refresh_symbol = '\U0001f504'  # 🔄
+
+def is_subdirectory(parent_dir, child_dir):
+	# checks if the child directory is actually a child directory of the parent directory
+	parent_dir = os.path.abspath(parent_dir)
+	child_dir = os.path.abspath(child_dir)
+
+	if not os.path.isdir(parent_dir) or not os.path.isdir(child_dir):
+		return False
+
+	common_prefix = os.path.commonprefix([parent_dir, child_dir])
+	
+	return common_prefix == parent_dir and child_dir != parent_dir
 
 def list_all_models():
 	# gets the list of checkpoints
 	model_list = sd_models.checkpoint_tiles()
-	return model_list
+	return sorted(model_list, key=lambda x: x.lower())
 
 def list_all_embeddings():
 	# get the list of embeddings
-	return sorted(sd_hijack.model_hijack.embedding_db.word_embeddings.keys())
+	list = sd_hijack.model_hijack.embedding_db.word_embeddings.keys()
+	return sorted(list, key=lambda x: x.lower())
 
 def list_all_hypernetworks():
 	# get the list of hyperlinks
-	return [x for x in shared.hypernetworks.keys()]
+	list = [x for x in shared.hypernetworks.keys()]
+	return sorted(list, key=lambda x: x.lower())
 	
 def list_all_loras():
-	global additional_networks
+	global additional_networks, additional_networks_builtin
 	# get the list of lora models
+	loras = []
+
 	# import/update the lora module
-	additional_networks = import_lora_module()	
-	# copy the list of models
-	loras = additional_networks.lora_models.copy()
-	# remove the None item from the lsit
-	loras.pop("None", None)
+	additional_networks = import_lora_module()
+	if additional_networks is not None:
+		# copy the list of models
+		loras_list = additional_networks.lora_models.copy()
+		# remove the None item from the lsit
+		loras_list.pop("None", None)
+		loras.extend(loras_list.keys())
+
+	# import/update the builtin lora module
+	additional_networks_builtin = import_lora_module_builtin()
+	if additional_networks_builtin is not None:
+		# copy the list of models
+		loras_list = additional_networks_builtin.available_loras.copy()
+		# remove the None item from the lsit
+		loras_list.pop("None", None)
+		loras.extend(loras_list.keys())
+
 	# return the list
-	return sorted(loras.keys())
+	return sorted(loras, key=lambda x: x.lower())
 
 def refresh_models():
 	# update the choices for the checkpoint list
 	return gr.Dropdown.update(choices=list_all_models())
+
+def refresh_embeddings():
+	# update the choices for the embeddings list
+	return gr.Dropdown.update(choices=list_all_embeddings())
 
 def refresh_hypernetworks():
 	# update the choices for the hypernetworks list
@@ -73,22 +121,48 @@ def refresh_loras():
 	# update the choices for the lora list
 	return gr.Dropdown.update(choices=list_all_loras())
 
-def create_html_iframe(file):
-	# create the iframe html code
-	html_code = f'<iframe src="file={file}"></iframe>'
+def create_html_iframe(file, is_in_a1111_dir):
+	if is_in_a1111_dir:
+		# create the iframe html code
+		html_code = f'<iframe src="file={file}"></iframe>'
+	else:
+		# the html file isnt located in the a1111 directory so load the html file instead of creating an iframe
+		with open(file, 'r', encoding='utf-8') as html_file:
+			soup = BeautifulSoup(html_file, 'html.parser')
+			styles = soup.find_all("style")
+			scripts = soup.find("head").find_all("script")
+			body = soup.find("body")
+		
+		html_code = ""
+		for style in styles:
+			html_code += str(style)
+		for script in scripts:
+			html_code += str(script)
+		if body:
+			for child in body.children:
+				html_code += str(child)
 	return html_code
 
-def create_html_img(file):
+def create_html_img(file, is_in_a1111_dir):
 	# create the html to display an image along with its meta data
 	image = Image.open(file)
 	# load the image to memory (needed for getting the meta data)
 	image.load()
 	# get the prompt data
 	metadata = image.info.get("parameters", None)
-	# replace the file name string spaces with %20 so the path will work
-	space_replace = file.replace(" ","%20")
-	# create the html for the image
-	html_code = f'<div class="img-container"><img src=file={space_replace} onclick="imageZoomIn(event)" />'
+
+	if is_in_a1111_dir:
+		# replace the file name string spaces with %20 so the path will work
+		space_replace = file.replace(" ","%20")
+		# create the html for the image
+		html_code = f'<div class="img-container"><img src=file={space_replace} onclick="imageZoomIn(event)" />'
+	else:
+		# linking to the image wont work so convert it to a base64 bypte string
+		with open(file, "rb") as img_file:
+			img_data = base64.b64encode(img_file.read()).decode()
+		# create the html for the image
+		html_code = f'<div class="img-container"><img src="data:image/{image.format};base64,{img_data}" onclick="imageZoomIn(event)" />'
+
 	# if the image has prompt data in the meta data also add some elements to support copying the prompt to clipboard
 	if metadata is not None and metadata.strip() != "":
 		html_code += '<div class="img-meta-ico" title="Copy Metadata" onclick="metaDataCopy(event)"></div>'
@@ -96,6 +170,7 @@ def create_html_img(file):
 	html_code += "</div>\n"
 	# return the html code
 	return html_code
+
 
 def search_and_display_previews(input_str, paths):
 	# create patters for the supported preview file types
@@ -121,17 +196,19 @@ def search_and_display_previews(input_str, paths):
 		relative_path = os.path.relpath(path, current_directory)
 		cwd = Path(relative_path)
 
+		is_in_a1111_dir = is_subdirectory(current_directory, relative_path)
+
 		# loop through all files in the path and any subdirectories
 		for file in glob.glob(os.path.join(cwd, '**'), recursive=True):
 			if html_pattern.match(file):
 				# prioritize html files, if you find one, just return it
-				return create_html_iframe(file), None, None
+				return create_html_iframe(file, is_in_a1111_dir), None, None
 			if md_pattern.match(file):
 				# there can only be one markdown file, if one was already found it is replaced
 				md_file = file
 			if img_pattern.match(file):
 				# there can be many images, even spread accross the multiple paths
-				html_code_list.append(create_html_img(file))
+				html_code_list.append(create_html_img(file, is_in_a1111_dir))
 			if txt_pattern.match(file):
 				# there can only be one text file, if one was already found it is replaced
 				found_txt_file = file
@@ -146,32 +223,59 @@ def show_model_preview(modelname=None):
 	# remove everything after the last instance of ' [' in the model name and remove .ckpt and .safetensors from the model name
 	seperator = ' ['
 	modelname = seperator.join(modelname.split(seperator)[:-1]) if modelname.count(seperator) > 0 else modelname
+	# create list of directories
+	directories = ['models/Stable-diffusion']
+	if shared.cmd_opts.ckpt_dir is not None:
+		# WARNING: html files and markdown files that link to local files outside of the automatic1111 directory will not work correctly
+		directories.append(shared.cmd_opts.ckpt_dir)
 	# get preview for the model
-	return show_preview(modelname.replace(".ckpt","").replace(".safetensors",""), ['models/Stable-diffusion'])
+	return show_preview(modelname.replace(".ckpt","").replace(".safetensors",""), directories)
 
 def show_embedding_preview(modelname=None):
+	# create list of directories
+	directories = ['embeddings']
+	if shared.cmd_opts.embeddings_dir is not None:
+		# WARNING: html files and markdown files that link to local files outside of the automatic1111 directory will not work correctly
+		directories.append(shared.cmd_opts.embeddings_dir)
 	# get preview for the model
-	return show_preview(modelname, ['embeddings'])
+	return show_preview(modelname, directories)
 
 def show_hypernetwork_preview(modelname=None):
+	# create list of directories
+	directories = ['models/hypernetworks']
+	if shared.cmd_opts.hypernetwork_dir is not None:
+		# WARNING: html files and markdown files that link to local files outside of the automatic1111 directory will not work correctly
+		directories.append(shared.cmd_opts.hypernetwork_dir)
 	# remove everything after the last instance of '(' in the model name
 	seperator = '('
 	modelname = seperator.join(modelname.split(seperator)[:-1]) if modelname.count(seperator) > 0 else modelname
 	# get preview for the model
-	return show_preview(modelname, ['models/hypernetworks'])
+	return show_preview(modelname, directories)
 
 def show_lora_preview(modelname=None):
-	# use the same pattern as the additional_networds.py extention to build up a list of paths to check for lora models and preview files
-	paths = [additional_networks.lora_models_dir]
-	extra_lora_path = shared.opts.data.get("additional_networks_extra_lora_path", None)
-	if extra_lora_path and os.path.exists(extra_lora_path):
-		paths.append(extra_lora_path)
+	directories = []
+
+	# add models/lora just in case to the list of directories
+	if os.path.exists("models/lora") and os.path.isdir("models/lora"):
+		directories.append("models/lora")
+
+	# add directories from the builtin lora extension if exists
+	if shared.cmd_opts.lora_dir is not None and shared.cmd_opts.lora_dir not in directories:
+		directories.append(shared.cmd_opts.lora_dir)
+
+	# add directories from the thirdparty lora extension if exists
+	if additional_networks is not None:
+		# use the same pattern as the additional_networds.py extention to build up a list of paths to check for lora models and preview files
+		directories.append(additional_networks.lora_models_dir)
+		extra_lora_path = shared.opts.data.get("additional_networks_extra_lora_path", None)
+		if extra_lora_path and os.path.exists(extra_lora_path) and extra_lora_path not in directories:
+			directories.append(extra_lora_path)
 
 	# remove everything after the last instance of '(' in the model name
 	seperator = '('
 	modelname = seperator.join(modelname.split(seperator)[:-1]) if modelname.count(seperator) > 0 else modelname
 	# get preview for the model
-	return show_preview(modelname, paths)
+	return show_preview(modelname, directories)
 
 def show_preview(name, paths):
 	# get the preview data
@@ -208,9 +312,10 @@ def show_preview(name, paths):
 	return txt_update, md_update, html_update
 
 def on_ui_tabs():
-	global additional_networks
+	global additional_networks, additional_networks_builtin
 	# import/update the lora module
 	additional_networks = import_lora_module()
+	additional_networks_builtin = import_lora_module_builtin()
 
 	# create a gradio block
 	with gr.Blocks() as modelpreview_interface:
@@ -251,6 +356,7 @@ def on_ui_tabs():
 		with gr.Tab("Embeddings"):
 			with gr.Row():
 				embeddings_list = gr.Dropdown(label="Model", choices=list_all_embeddings(), interactive=True, elem_id="em_mp2_preview_model_list")
+				refresh_embedding = gr.Button(value=refresh_symbol, elem_id="em_modelpreview_xd_refresh_sd_model")
 			with gr.Row():
 				embedding_text_area = gr.Textbox(label='Notes', interactive=False, lines=1, visible=False)
 			with gr.Row(elem_id="em_modelpreview_xd_html_row"):
@@ -267,6 +373,14 @@ def on_ui_tabs():
 				embedding_text_area,
 				embedding_preview_md,
 				embedding_preview_html,
+			]
+		)
+
+		refresh_embedding.click(
+			fn=refresh_embeddings,
+			inputs=[],
+			outputs=[
+				embeddings_list,
 			]
 		)
 
@@ -303,7 +417,7 @@ def on_ui_tabs():
 		)
 
 		# create a tab for the lora previews if the module was loaded
-		if additional_networks is not None:
+		if additional_networks is not None or additional_networks_builtin is not None:
 			with gr.Tab("LORA"):
 				with gr.Row():
 					loras_list = gr.Dropdown(label="Model", choices=list_all_loras(), interactive=True, elem_id="lo_mp2_preview_model_list")
