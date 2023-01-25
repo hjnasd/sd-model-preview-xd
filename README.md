@@ -36,7 +36,7 @@ This extension supports the folling model types in the the default directories:
 
 ![screenshot of markdown example](https://github.com/CurtisDS/sd-model-preview-xd/raw/main/sd-model-preview-xd-markdown-example.png)
 
-2. You can save the model's Civitai page (using `Ctrl+S` in your browser) to use the Civitai page as your model preview:
+2. You can save the model's Civitai page (using <kbd>Ctrl</kbd>+<kbd>S</kbd> in your browser) to use the Civitai page as your model preview:
 
 ![screenshot of html example](https://github.com/CurtisDS/sd-model-preview-xd/raw/main/sd-model-preview-xd-html-example.png)
 
