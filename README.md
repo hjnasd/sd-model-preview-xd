@@ -1,5 +1,7 @@
 # sd-model-preview-xd
-Extension for [Automatic1111 Stable Diffusion WebUI](https://github.com/AUTOMATIC1111/stable-diffusion-webui) to display previews for custom models.
+Extension for [Automatic1111 Stable Diffusion WebUI](https://github.com/AUTOMATIC1111/stable-diffusion-webui) to display previews for custom models[^1].
+
+[^1]: This extension should support all operating systems in theory but has only been tested in Windows
 
 ## About
 With so many new models appearing it's becoming harder to keep track of what models output what styles and what tags are used to call these styles.
@@ -9,10 +11,13 @@ This extension allows you to create various types of preview files/notes, each w
 1. From the extensions tab in web ui click install from url
 2. Paste `https://github.com/CurtisDS/sd-model-preview-xd` into the url box.
 3. Click Install
-4. From the Installed tab click apply and restart  (*If you run into issues you may need to fully shutdown and rerun the webui-user.bat*).
-5. Put `.html`, `.md`, `.txt`, `.png`, `.webp`, and/or `.jpg`/`.jpeg` files in the same directory as your models, or a subfolder. Make sure to name the files the same as your model. You may append something after the name of the model and it will still work. You can have multiple images for a single model, but only one markdown, text, or html file. You can also mix and match any of the preview files except for HTML files, if the extension finds an html file it will only show the html file.
+4. From the Installed tab click apply and restart[^2].
+5. Put `.html`[^3], `.md`[^3], `.txt`, `.png`, `.webp`, and/or `.jpg`/`.jpeg` files in the same directory as your models, or a subfolder. Make sure to name the files the same as your model. You may append something after the name of the model and it will still work<sup>[[4]](#name-collisions)</sup>. You can have multiple images for a single model, but only one markdown, text, or html file. You can also mix and match any of the preview files except for HTML files, if the extension finds an html file it will only show the html file.
 
-***Note**: Symlinks do not seem to be supported see further down for a workaround*
+[^2]: If you run into issues after first install you may need to fully shutdown and rerun the webui-user.bat after you install the extension.
+[^3]: HTML and Markdown files will not support linking to files or images outside of the Automatic1111 directory. If you cannot keep linked files within the install directory upload them to the internet and link to them remotely.
+
+***Note**: If you are using symlinks or otherwise changing the default model directories [click here for information](#changing-default-directories)*
 
 For example if you have `my_model.ckpt` in `models\Stable-diffusion` then you can put `my_model.txt`, `my_model_1.jpg` and, `my_model_2.jpg` in `models\Stable-diffusion\Previews` and it will display them in the "Model Preview" tab.
 
@@ -44,13 +49,23 @@ This extension supports the folling model types in the the default directories:
 
 ![screenshot of text and images example](https://github.com/CurtisDS/sd-model-preview-xd/raw/main/sd-model-preview-xd-text-and-image-example.png)
 
-4. Watch out for name collisions! If you have a model named `my-checkpoint.ckpt` and `my-checkpoint2.ckpt` the extension will pick up preview files meant for `my-checkpoint2` in its search for preview files for `my-checkpoint`. You can avoid this my renaming `my-checkpoint` to `my-checkpoint1` (*Make sure to also update any existing preview files*).
+## Things to watch out for
 
-## Symlink workaround
+### Name Collisions
 
-The latest version of gradio (the software Automatic1111 is built on) doesn't seem to support symlinks for linking files in the webui. To work around this use Automatic1111's built in arguments for altering the model directories.
+If you have a model named `my-checkpoint.ckpt` and `my-checkpoint2.ckpt` the extension will pick up preview files meant for `my-checkpoint2` in its search for preview files for `my-checkpoint`. You can avoid this my renaming `my-checkpoint` to `my-checkpoint1` (*Make sure to also update any existing preview files*).
 
-Edit your `web-user.bat` `COMMANDLINE_ARGS` to include the custom directory argument for each model type:
+### Changing Default Directories
+
+Gradio (the software Automatic1111 is built on) doesn't support linking to files outside of the Automatic1111 install directory through the webui. So if you have used symlinks or Automatic1111's built in command line arguments to change the directories for your models to something outside of the Automatic1111 directory you will need to take advantage of one of the following workarounds for your previews to work.
+
+1. If you use the command line arguments to change the directories for your models the extension will look in both the default directories and the custom directories for preview files. So you could change the directory for your models and leave your preview files in the default directories, this will keep them within the install directory and remove the issues with linking.
+
+<details>
+<summary>Click here for a quick guide on how to change directories without using symlinks.</summary>
+​
+
+If you want to change the directories for models add these settings to your `web-user.bat` `COMMANDLINE_ARGS` for each model type:
 
 `--ckpt-dir "D:\\my models\\checkpoints"`
 
@@ -62,17 +77,17 @@ Edit your `web-user.bat` `COMMANDLINE_ARGS` to include the custom directory argu
 
 If you wanted to use all the settings at once your COMMANDLINE_ARGS line would look something like this:
 
-```
+```bash
 set COMMANDLINE_ARGS=--xformers --api --ckpt-dir "D:\\my models\\checkpoints" --hypernetwork-dir "D:\\my models\\hypernetworks" --embeddings-dir "D:\\my models\\embeddings" --lora-dir "D:\\my models\\lora"
 ```
 
-**Note about using arguments to change the model directories:**
+</details>
 
-If you change one of the model directories to point to a directory outside of your Automatic1111 install directory please note that it is suggested you keep your preview files in the default directories (they will still be loaded).
+2. The extension can detect if a preview file is outside of the install directory and alter how it handles the preview to try and avoid some of the issues with linking files in the webui. The following differences will occur:
+- **Text files**: Nothing will change, it will work the same as if it was in the install directory.
 
-If you must put your preview files in a directory outside of the Automatic1111 directory keep in mind that images will be referenced by converting them to base64 strings which could cause more load times (probably minor) and if you use an html or markdown preview file that internally links to another file on the local system there may be issues with resolving those links due to the limitations of the webui server.
+- **Image files**: The images will be converted to a base64 string essensially copying the image into the html code instead of linking to a file. This may slightly increase load times but should be otherwise fine.
 
-Again, for best support it is recommended that you keep your preview files within the default directories but at least basic support is there if you choose not to.
+- **Markdown files**: The preview will load but if you linked to a local image or file in the markdown - even if that file or image is in the same directory as the markdown file - it may not resolve that link. A workaround would be to upload files or images to the internet and link to them remotely instead of locally, then the links will resolve.
 
----
-<sub>This extension should support all operating systems in theory but has only been tested in Windows</sub>
+- **HTML files**: Normally the extension will create an `<iframe>` linking to the HTML file, however again because you cannot link to files outside the install directory instead the extension will extract the contents of the `<body>` tag, and any `<script>` or `<style>` tags in the header and then inject that html into the preview tab (thus not linking to the HTML file itself). This will give some basic support for styling and scripts but it will not carry over any styles or scripts imported with `<link>` tags. This may break some scripts or styling intended for the page. Also, as with markdown files if you linked to a local image or file in the markdown it may not resolve that link. You can use the same workaround, though, which is to upload the files or images to the internet and link to them remotely instead of locally.
