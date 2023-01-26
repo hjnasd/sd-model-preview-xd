@@ -14,8 +14,10 @@ function registerClickEvents(refreshButton, invisible_button_id_selectors) {
           const previewRefreshModelButton = gradioApp().querySelector(invisible_button_id_selector);
           // Check if the button element exists and is not null
           if (typeof previewRefreshModelButton != "undefined" && previewRefreshModelButton != null) {
-            // Click the preview refresh model button
-            previewRefreshModelButton.click();
+            // Click the preview refresh model button after 500ms (gives it a bit to load)
+            setTimeout((event) => {
+              previewRefreshModelButton.click();
+            }, 500);
           }
         });
       });
@@ -65,7 +67,7 @@ onUiUpdate(function() {
         // Set the value after 100ms
         setTimeout((event) => {
           setSelectValue(selectPreviewModelElement, selectSDModelElement);
-        }, 100);
+        }, 500);
       }
     }
   }
@@ -88,10 +90,10 @@ onUiUpdate(function() {
       if(typeof selectPreviewModelElement != "undefined" && selectPreviewModelElement != null &&
         (typeof selectPreviewModelElement.value == "undefined" || selectPreviewModelElement.value == null ||
         selectPreviewModelElement.value == "")) {
-        // Set the value after 100ms
+        // Set the value after 1000ms
         setTimeout((event) => {
           setSelectValue(selectPreviewModelElement, selectHypernetworkElement);
-        }, 100);
+        }, 500);
       }
     }
   }

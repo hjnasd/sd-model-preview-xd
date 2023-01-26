@@ -54,14 +54,13 @@ refresh_symbol = '\U0001f504'  # 🔄
 
 def is_subdirectory(parent_dir, child_dir):
 	# checks if the child directory is actually a child directory of the parent directory
-	parent_dir = os.path.abspath(parent_dir)
-	child_dir = os.path.abspath(child_dir)
+	parent_dir = os.path.abspath(os.path.realpath(parent_dir))
+	child_dir = os.path.abspath(os.path.realpath(child_dir))
 
 	if not os.path.isdir(parent_dir) or not os.path.isdir(child_dir):
 		return False
 
 	common_prefix = os.path.commonprefix([parent_dir, child_dir])
-	
 	return common_prefix == parent_dir and child_dir != parent_dir
 
 def is_dir_in_list(dir_list, check_dir):
@@ -79,7 +78,8 @@ def list_all_models():
 
 def list_all_embeddings():
 	# get the list of embeddings
-	list = sd_hijack.model_hijack.embedding_db.word_embeddings.keys()
+	list = [x for x in sd_hijack.model_hijack.embedding_db.word_embeddings.keys()]
+	list.extend([x for x in sd_hijack.model_hijack.embedding_db.skipped_embeddings.keys()])
 	return sorted(list, key=lambda x: x.lower())
 
 def list_all_hypernetworks():
@@ -198,7 +198,7 @@ def search_and_display_previews(input_str, paths):
 	# get the current directory so we can convert absolute paths to relative paths if we need to
 	current_directory = os.getcwd()
 
-	# support the ability to check multiple paths (mainly because lora models can be in multiple directories)
+	# support the ability to check multiple paths
 	for path in paths:
 		# convert the path to a relative path
 		relative_path = os.path.relpath(path, current_directory)
@@ -207,20 +207,22 @@ def search_and_display_previews(input_str, paths):
 		is_in_a1111_dir = is_subdirectory(current_directory, relative_path)
 
 		# loop through all files in the path and any subdirectories
-		for file in glob.glob(os.path.join(cwd, '**'), recursive=True):
-			if html_pattern.match(file):
-				# prioritize html files, if you find one, just return it
-				return create_html_iframe(file, is_in_a1111_dir), None, None
-			if md_pattern.match(file):
-				# there can only be one markdown file, if one was already found it is replaced
-				md_file = file
-			if img_pattern.match(file):
-				# there can be many images, even spread accross the multiple paths
-				html_code_list.append(create_html_img(file, is_in_a1111_dir))
-			if txt_pattern.match(file):
-				# there can only be one text file, if one was already found it is replaced
-				found_txt_file = file
-	
+		for dirpath, dirnames, filenames in os.walk(path, followlinks=True):
+			for file in filenames:
+				file_path = os.path.join(dirpath, file)
+				if html_pattern.match(file_path):
+					# prioritize html files, if you find one, just return it
+					return create_html_iframe(file_path, is_in_a1111_dir), None, None
+				if md_pattern.match(file_path):
+					# there can only be one markdown file, if one was already found it is replaced
+					md_file = file_path
+				if img_pattern.match(file_path):
+					# there can be many images, even spread accross the multiple paths
+					html_code_list.append(create_html_img(file_path, is_in_a1111_dir))
+				if txt_pattern.match(file_path):
+					# there can only be one text file, if one was already found it is replaced
+					found_txt_file = file_path
+			
 	# if there were images found, wrap the images in a container div
 	html_code_output = '<div class="img-container-set">' + ''.join(html_code_list) + '</div>' if len(html_code_list) > 0 else None
 
@@ -232,7 +234,7 @@ def show_model_preview(modelname=None):
 	seperator = ' ['
 	modelname = seperator.join(modelname.split(seperator)[:-1]) if modelname.count(seperator) > 0 else modelname
 	# create list of directories
-	directories = ['models/Stable-diffusion']
+	directories = [os.path.join('models','Stable-diffusion')] # models/Stable-diffusion
 	set_dir = shared.cmd_opts.ckpt_dir
 	if set_dir is not None and not is_dir_in_list(directories, set_dir):
 		# WARNING: html files and markdown files that link to local files outside of the automatic1111 directory will not work correctly
@@ -252,7 +254,7 @@ def show_embedding_preview(modelname=None):
 
 def show_hypernetwork_preview(modelname=None):
 	# create list of directories
-	directories = ['models/hypernetworks']
+	directories = [os.path.join('models','hypernetworks')] # models/hypernetworks
 	set_dir = shared.cmd_opts.hypernetwork_dir
 	if set_dir is not None and not is_dir_in_list(directories, set_dir):
 		# WARNING: html files and markdown files that link to local files outside of the automatic1111 directory will not work correctly
@@ -267,8 +269,9 @@ def show_lora_preview(modelname=None):
 	directories = []
 
 	# add models/lora just in case to the list of directories
-	if os.path.exists("models/lora") and os.path.isdir("models/lora"):
-		directories.append("models/lora")
+	default_dir = os.path.join("models","lora") # models/lora
+	if os.path.exists(default_dir) and os.path.isdir(default_dir):
+		directories.append(default_dir)
 
 	# add directories from the builtin lora extension if exists
 	set_dir = shared.cmd_opts.lora_dir
