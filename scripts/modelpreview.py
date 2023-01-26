@@ -134,11 +134,21 @@ def create_html_iframe(file, is_in_a1111_dir):
 		# create the iframe html code
 		html_code = f'<iframe src="file={file}"></iframe>'
 	else:
+		# the html file isnt located in the a1111 directory so load the html file instead of creating an iframe
+		with open(file, 'r', encoding='utf-8') as html_file:
+			soup = BeautifulSoup(html_file, 'html.parser')
+			styles = soup.find_all("style")
+			scripts = soup.find("head").find_all("script")
+			body = soup.find("body")
+		
 		html_code = ""
-		# the html file isnt located in the a1111 directory so load the html file as a base64 string instead of linking to it
-		with open(file, 'rb') as html_file:
-			html_data = base64.b64encode(html_file.read()).decode()
-			html_code = f'<iframe src="data:text/html;charset=UTF-8;base64,{html_data}"></iframe>'
+		for style in styles:
+			html_code += str(style)
+		for script in scripts:
+			html_code += str(script)
+		if body:
+			for child in body.children:
+				html_code += str(child)
 	return html_code
 
 def create_html_img(file, is_in_a1111_dir):
