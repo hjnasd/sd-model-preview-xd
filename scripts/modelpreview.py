@@ -1,22 +1,10 @@
-import os.path
-from pathlib import Path
-
-import pathlib
 import os
+import os.path
 import re
-import glob
-
-import modules.scripts as scripts
 import gradio as gr
-
-from modules.processing import Processed, process_images
-from modules.shared import opts
-from modules.textual_inversion import textual_inversion
 from modules import script_callbacks, sd_models, shared, sd_hijack
-
 from PIL import Image
 import base64
-from bs4 import BeautifulSoup
 
 import importlib.util
 
@@ -190,11 +178,8 @@ def search_and_display_previews(input_str, paths):
 
 	# support the ability to check multiple paths
 	for path in paths:
-		# convert the path to a relative path
-		relative_path = os.path.relpath(path, current_directory)
-		cwd = Path(relative_path)
-
-		is_in_a1111_dir = is_subdirectory(current_directory, relative_path)
+		# check if the path is a subdirectory of the install directory
+		is_in_a1111_dir = is_subdirectory(current_directory, path)
 
 		# loop through all files in the path and any subdirectories
 		for dirpath, dirnames, filenames in os.walk(path, followlinks=True):
