@@ -227,8 +227,9 @@ def clean_modelname(modelname):
 	name, ext = os.path.splitext(modelname)
 	ext = ext.lower()
 	modelname = name + ext	
-	# remove the hash if exists, the extension, and if the string is a path just return the file name
-	return re.sub(r"( \[[a-fA-F0-9]{10}\])?(\.pt|\.bin|\.ckpt|\.safetensors)?$", "", modelname).split("\\")[-1].split("/")[-1]
+	# remove the extension and the hash if it exists at the end of the model name (this is added by a1111) and 
+	# if the model name contains a path (which happens when a checkpoint is in a subdirectory) just return the model name portion
+	return re.sub(r"(\.pt|\.bin|\.ckpt|\.safetensors)?( \[[a-fA-F0-9]{10}\])?$", "", modelname).split("\\")[-1].split("/")[-1]
 
 def show_model_preview(modelname=None):
 	# remove the hash if exists, the extension, and if the string is a path just return the file name
