@@ -116,6 +116,11 @@ onUiUpdate(function() {
   // Sync the new refresh extra network buttons to this extension
   registerClickEvents(gradioApp().querySelector('#txt2img_extra_refresh'), ['#cp_modelpreview_xd_refresh_sd_model','#lo_modelpreview_xd_refresh_sd_model','#hn_modelpreview_xd_refresh_sd_model','#em_modelpreview_xd_refresh_sd_model']);
   registerClickEvents(gradioApp().querySelector('#img2img_extra_refresh'), ['#cp_modelpreview_xd_refresh_sd_model','#lo_modelpreview_xd_refresh_sd_model','#hn_modelpreview_xd_refresh_sd_model','#em_modelpreview_xd_refresh_sd_model']);
+
+  let strict_naming_setting = gradioApp().querySelector("#settings_model_preview_xd #setting_strict_naming")
+  if (typeof strict_naming_setting != "undefined" && strict_naming_setting != null && !strict_naming_setting.hasAttribute("title")) {
+    strict_naming_setting.setAttribute("title", "Use a strict naming scheme for matching preview files. If your model is named 'model.ckpt' your preview files must be named in the following manner:\n • model.html\n • model.md\n • model.txt\n • model.webp\n • model.preview.png\n • model.3.jpg\n • model.preview.4.jpeg");
+  }
 })
 
 function metaDataCopy(event) {

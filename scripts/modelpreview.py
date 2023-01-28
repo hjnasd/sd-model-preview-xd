@@ -158,13 +158,31 @@ def create_html_img(file, is_in_a1111_dir):
 	return html_code
 
 
-def search_and_display_previews(input_str, paths):
+def search_and_display_previews(model_name, paths):
 	# create patters for the supported preview file types
-	# `input_str` will be the name of the model to check for preview files for
-	html_pattern = re.compile(r'.*' + input_str + r'.*\.html')
-	md_pattern = re.compile(r'.*' + input_str + r'.*\.md')
-	img_pattern = re.compile(r'.*' + input_str + r'.*\.(png|jpg|jpeg|webp)')
-	txt_pattern = re.compile(r'.*' + input_str + r'.*\.txt')
+	# `model_name` will be the name of the model to check for preview files for
+	if shared.opts.strict_naming:
+		# strict naming is intended to avoid name collision between 'checkpoint1000' and 'checkpoint10000'.
+		# Using a loose naming rule preview files for 'checkpoint10000' would show up for 'checkpoint1000'
+		# The rules for strict naming are:
+		# HTML previews should follow {model}.html example 'checkpoint1000.html'
+		html_pattern = re.compile(re.escape(model_name) + r'(?i:\.html)')
+		# Markdown previews should follow {model}.md example 'checkpoint1000.md'
+		md_pattern = re.compile(re.escape(model_name) + r'(?i:\.md)')
+		# Text files previews should follow {model}.txt example 'checkpoint1000.txt'
+		txt_pattern = re.compile(re.escape(model_name) + r'(?i:\.txt)')
+		# Images previews should follow {model}.{extension} or {model}.preview.{extension} or {model}.{number}.{extension} or {model}.preview.{number}.{extension}
+		# example 1 'checkpoint1000.png'
+		# example 2 'checkpoint1000.preview.jpg'
+		# example 3 'checkpoint1000.1.jpeg'
+		# example 4 'checkpoint1000.preview.1.webp'
+		img_pattern = re.compile(re.escape(model_name) + r'(?i:(\.preview)?(\.\d+)?\.(png|jpg|jpeg|webp|jxk|avif))')
+	else:
+		# use a lose name matching that only requres the model name to show up somewhere in the file name
+		html_pattern = re.compile(r'.*' + re.escape(model_name) + r'.*(?i:\.html)')
+		md_pattern = re.compile(r'.*' + re.escape(model_name) + r'.*(?i:\.md)')
+		txt_pattern = re.compile(r'.*' + re.escape(model_name) + r'.*(?i:\.txt)')
+		img_pattern = re.compile(r'.*' + re.escape(model_name) + r'.*(?i:\.(png|jpg|jpeg|webp|jxk|avif))')
 	
 	# an array to hold the image html code
 	html_code_list = []
@@ -183,18 +201,18 @@ def search_and_display_previews(input_str, paths):
 
 		# loop through all files in the path and any subdirectories
 		for dirpath, dirnames, filenames in os.walk(path, followlinks=True):
-			for file in filenames:
-				file_path = os.path.join(dirpath, file)
-				if html_pattern.match(file_path):
+			for filename in filenames:
+				file_path = os.path.join(dirpath, filename)
+				if html_pattern.match(filename):
 					# prioritize html files, if you find one, just return it
 					return create_html_iframe(file_path, is_in_a1111_dir), None, None
-				if md_pattern.match(file_path):
+				if md_pattern.match(filename):
 					# there can only be one markdown file, if one was already found it is replaced
 					md_file = file_path
-				if img_pattern.match(file_path):
+				if img_pattern.match(filename):
 					# there can be many images, even spread accross the multiple paths
 					html_code_list.append(create_html_img(file_path, is_in_a1111_dir))
-				if txt_pattern.match(file_path):
+				if txt_pattern.match(filename):
 					# there can only be one text file, if one was already found it is replaced
 					found_txt_file = file_path
 			
@@ -204,10 +222,17 @@ def search_and_display_previews(input_str, paths):
 	# return the images, and/or text file found
 	return html_code_output, md_file, found_txt_file
 
+def clean_modelname(modelname):
+	# convert the extension to lowercase if it exists
+	name, ext = os.path.splitext(modelname)
+	ext = ext.lower()
+	modelname = name + ext	
+	# remove the hash if exists, the extension, and if the string is a path just return the file name
+	return re.sub(r"( \[[a-fA-F0-9]{10}\])?(\.pt|\.bin|\.ckpt|\.safetensors)?$", "", modelname).split("\\")[-1].split("/")[-1]
+
 def show_model_preview(modelname=None):
-	# remove everything after the last instance of ' [' in the model name and remove .ckpt and .safetensors from the model name
-	seperator = ' ['
-	modelname = seperator.join(modelname.split(seperator)[:-1]) if modelname.count(seperator) > 0 else modelname
+	# remove the hash if exists, the extension, and if the string is a path just return the file name
+	modelname = clean_modelname(modelname)
 	# create list of directories
 	directories = [os.path.join('models','Stable-diffusion')] # models/Stable-diffusion
 	set_dir = shared.cmd_opts.ckpt_dir
@@ -215,9 +240,11 @@ def show_model_preview(modelname=None):
 		# WARNING: html files and markdown files that link to local files outside of the automatic1111 directory will not work correctly
 		directories.append(set_dir)
 	# get preview for the model
-	return show_preview(modelname.replace(".ckpt","").replace(".safetensors",""), directories)
+	return show_preview(modelname, directories)
 
 def show_embedding_preview(modelname=None):
+	# remove the hash if exists, the extension, and if the string is a path just return the file name
+	modelname = clean_modelname(modelname)
 	# create list of directories
 	directories = ['embeddings']
 	set_dir = shared.cmd_opts.embeddings_dir
@@ -228,6 +255,8 @@ def show_embedding_preview(modelname=None):
 	return show_preview(modelname, directories)
 
 def show_hypernetwork_preview(modelname=None):
+	# remove the hash if exists, the extension, and if the string is a path just return the file name
+	modelname = clean_modelname(modelname)
 	# create list of directories
 	directories = [os.path.join('models','hypernetworks')] # models/hypernetworks
 	set_dir = shared.cmd_opts.hypernetwork_dir
@@ -241,6 +270,10 @@ def show_hypernetwork_preview(modelname=None):
 	return show_preview(modelname, directories)
 
 def show_lora_preview(modelname=None):
+	# remove the hash if exists, the extension, and if the string is a path just return the file name
+	modelname = clean_modelname(modelname)
+
+	# create list of directories
 	directories = []
 
 	# add models/lora just in case to the list of directories
@@ -445,4 +478,9 @@ def on_ui_tabs():
 
 	return (modelpreview_interface, "Model Previews", "modelpreview_xd_interface"),
 
+def on_ui_settings():
+    section = ('model_preview_xd', "Model Preview XD")
+    shared.opts.add_option("strict_naming", shared.OptionInfo(False, "Use strict naming for preview files", section=section))
+
+script_callbacks.on_ui_settings(on_ui_settings)
 script_callbacks.on_ui_tabs(on_ui_tabs)
