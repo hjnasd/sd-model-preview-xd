@@ -12,7 +12,7 @@ This extension allows you to create various types of preview files/notes, each w
 2. Paste `https://github.com/CurtisDS/sd-model-preview-xd` into the url box.
 3. Click Install
 4. From the Installed tab click apply and restart[^2].
-5. Put `.html`[^3], `.md`[^3], `.txt`, `.png`, `.webp`, and/or `.jpg`/`.jpeg` files in the same directory as your models, or a subfolder. Make sure to name the files the same as your model. You may append something after the name of the model and it will still work<sup>[[4]](#name-collisions)</sup>. You can have multiple images for a single model, but only one markdown, text, or html file. You can also mix and match any of the preview files except for HTML files, if the extension finds an html file it will only show the html file.
+5. Put `.html`[^3], `.md`[^3], `.txt`, `.png`, `.webp`, and/or `.jpg`/`.jpeg` files in the same directory as your models, or a subfolder. Make sure to name the files the same as your model. You may append something after the name of the model and it will still work ([See: Name Matching Rules](#name-matching-rules)). You can have multiple images for a single model, but only one markdown, text, or html file. You can also mix and match any of the preview files except for HTML files, if the extension finds an html file it will only show the html file.
 
 [^2]: If you run into issues after first install you may need to fully shutdown and rerun the webui-user.bat after you install the extension.
 [^3]: HTML and Markdown files will not support linking to files or images outside of the Automatic1111 directory. If you cannot keep linked files within the install directory upload them to the internet and link to them remotely.
@@ -51,9 +51,43 @@ This extension supports the folling model types in the the default directories:
 
 ## Things to watch out for
 
-### Name Collisions
+### Name Matching Rules
 
-If you have a model named `my-checkpoint.ckpt` and `my-checkpoint2.ckpt` the extension will pick up preview files meant for `my-checkpoint2` in its search for preview files for `my-checkpoint`. You can avoid this my renaming `my-checkpoint` to `my-checkpoint1` (*Make sure to also update any existing preview files*).
+In the settings tab there is a page for Model Preivew XD where you can update the setting to use strict naming. Depending on that setting the rules for naming preview files will be slightly different.
+
+#### Strict Name Matching:
+
+Name your preview files the exact same as the model name. To support multiple images you can also choose to append to the model name `.preview` and/or `.1` (where 1 can be any number). 
+
+Here are a number of examples that will work with strict naming assuming your model is named `model.ckpt`:
+
+- model.txt
+- model.md
+- model.html
+- model.png
+- model.preview.png
+- model.4.png
+- model.preview.7.png
+
+***Note** that in the example png images were used but you can use png, jpg, jpeg, or webm images*
+
+#### Loose Name Matching:
+
+If you do not have strict naming turned on then the rule for matching preview file names will be just that your model name has to appear anywhere in the file name. Please note this has the potential to return preview files for other models that are named similarly. For example, if you have a model named `my-checkpoint.ckpt` and `my-checkpoint2.ckpt` the extension will pick up preview files meant for `my-checkpoint2` in its search for preview files for `my-checkpoint`. You can avoid this my renaming `my-checkpoint` to `my-checkpoint1` (*Make sure to also update any existing preview files*).
+
+Here are a number of examples that will work with loose naming assuming your model is named `model.ckpt`:
+
+- model_trigger_words.txt
+- model_readme.md
+- my_model_webpage.html
+- model.png
+- model_preview.png
+- model.image.png
+- 3D_modelling_checkpoint.png
+
+***Note** that in the example png images were used but you can use png, jpg, jpeg, or webm images*
+
+***Also note** that preview files that appear to be for other checkpoints have also been returned*
 
 ### Changing Default Directories
 
@@ -65,7 +99,7 @@ Gradio (the software Automatic1111 is built on) doesn't support linking to files
 <summary>Click here for a quick guide on how to change directories without using symlinks.</summary>
 ​
 
-If you want to change the directories for models add these settings to your `web-user.bat` `COMMANDLINE_ARGS` for each model type:
+If you want to change the directories for models add these settings to your `webui-user.bat` `COMMANDLINE_ARGS` for each model type:
 
 `--ckpt-dir "D:\\my models\\checkpoints"`
 
