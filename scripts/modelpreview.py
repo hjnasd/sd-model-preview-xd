@@ -264,9 +264,8 @@ def show_hypernetwork_preview(modelname=None):
 	if set_dir is not None and not is_dir_in_list(directories, set_dir):
 		# WARNING: html files and markdown files that link to local files outside of the automatic1111 directory will not work correctly
 		directories.append(set_dir)
-	# remove everything after the last instance of '(' in the model name
-	seperator = '('
-	modelname = seperator.join(modelname.split(seperator)[:-1]) if modelname.count(seperator) > 0 else modelname
+	# in older versions of a1111 the hash was included at the end in brackets, remove the hash if you find it
+	modelname = re.sub(r"(\([a-fA-F0-9]{10}\))?$", "", modelname)
 	# get preview for the model
 	return show_preview(modelname, directories)
 
@@ -278,7 +277,7 @@ def show_lora_preview(modelname=None):
 	directories = []
 
 	# add models/lora just in case to the list of directories
-	default_dir = os.path.join("models","lora") # models/lora
+	default_dir = os.path.join("models","Lora") # models/Lora
 	if os.path.exists(default_dir) and os.path.isdir(default_dir):
 		directories.append(default_dir)
 
@@ -299,9 +298,8 @@ def show_lora_preview(modelname=None):
 		if extra_lora_path and os.path.exists(extra_lora_path) and not is_dir_in_list(directories, extra_lora_path):
 			directories.append(extra_lora_path)
 
-	# remove everything after the last instance of '(' in the model name
-	seperator = '('
-	modelname = seperator.join(modelname.split(seperator)[:-1]) if modelname.count(seperator) > 0 else modelname
+	# in older versions of a1111 the hash was included at the end in brackets, remove the hash if you find it
+	modelname = re.sub(r"(\([a-fA-F0-9]{10}\))?$", "", modelname)
 	# get preview for the model
 	return show_preview(modelname, directories)
 
@@ -446,7 +444,7 @@ def on_ui_tabs():
 
 		# create a tab for the lora previews if the module was loaded
 		if additional_networks is not None or additional_networks_builtin is not None:
-			with gr.Tab("LORA"):
+			with gr.Tab("Lora"):
 				with gr.Row():
 					loras_list = gr.Dropdown(label="Model", choices=list_all_loras(), interactive=True, elem_id="lo_mp2_preview_model_list")
 					refresh_lora = gr.Button(value=refresh_symbol, elem_id="lo_modelpreview_xd_refresh_sd_model")
