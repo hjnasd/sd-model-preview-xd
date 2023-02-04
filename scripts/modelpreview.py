@@ -137,17 +137,27 @@ def create_html_img(file, is_in_a1111_dir):
 	# get the prompt data
 	metadata = image.info.get("parameters", None)
 
+	# set default order to 0
+	order = 0
+	# if strict naming is on, search the file name for a number at the end of the file and use that for its order
+	if shared.opts.model_preview_xd_name_matching == "Strict":
+		# get the file name without extension
+		file_name, file_extension = os.path.splitext(os.path.basename(file))
+		# search for '{anything}.{number}' in the file name and return the number
+		image_number = re.search(".*\.(\d+)$", file_name)
+		order = int(image_number.group(1)) if image_number else 0
+
 	if is_in_a1111_dir:
 		# replace the file name string spaces with %20 so the path will work
 		space_replace = file.replace(" ","%20")
 		# create the html for the image
-		html_code = f'<div class="img-container"><img src=file={space_replace} onclick="imageZoomIn(event)" />'
+		html_code = f'<div class="img-container" style="order:{order}"><img src=file={space_replace} onclick="imageZoomIn(event)" />'
 	else:
-		# linking to the image wont work so convert it to a base64 bypte string
+		# linking to the image wont work so convert it to a base64 byte string
 		with open(file, "rb") as img_file:
 			img_data = base64.b64encode(img_file.read()).decode()
 		# create the html for the image
-		html_code = f'<div class="img-container"><img src="data:image/{image.format};base64,{img_data}" onclick="imageZoomIn(event)" />'
+		html_code = f'<div class="img-container" style="order:{order}"><img src="data:image/{image.format};base64,{img_data}" onclick="imageZoomIn(event)" />'
 
 	# if the image has prompt data in the meta data also add some elements to support copying the prompt to clipboard
 	if metadata is not None and metadata.strip() != "":
@@ -161,7 +171,7 @@ def create_html_img(file, is_in_a1111_dir):
 def search_and_display_previews(model_name, paths):
 	# create patters for the supported preview file types
 	# `model_name` will be the name of the model to check for preview files for
-	if shared.opts.strict_naming:
+	if shared.opts.model_preview_xd_name_matching == "Strict":
 		# strict naming is intended to avoid name collision between 'checkpoint1000' and 'checkpoint10000'.
 		# Using a loose naming rule preview files for 'checkpoint10000' would show up for 'checkpoint1000'
 		# The rules for strict naming are:
@@ -177,8 +187,14 @@ def search_and_display_previews(model_name, paths):
 		# example 3 'checkpoint1000.1.jpeg'
 		# example 4 'checkpoint1000.preview.1.webp'
 		img_pattern = re.compile(re.escape(model_name) + r'(?i:(\.preview)?(\.\d+)?\.(png|jpg|jpeg|webp|jxk|avif))')
+	elif shared.opts.model_preview_xd_name_matching == "Folder":
+		# use a folder name matching that only requres the model name to show up somewhere in the folder path not the file name name
+		html_pattern = re.compile(r'.*(?i:\.html)')
+		md_pattern = re.compile(r'.*(?i:\.md)')
+		txt_pattern = re.compile(r'.*(?i:\.txt)')
+		img_pattern = re.compile(r'.*(?i:\.(png|jpg|jpeg|webp|jxk|avif))')
 	else:
-		# use a lose name matching that only requres the model name to show up somewhere in the file name
+		# use a loose name matching that only requres the model name to show up somewhere in the file name
 		html_pattern = re.compile(r'.*' + re.escape(model_name) + r'.*(?i:\.html)')
 		md_pattern = re.compile(r'.*' + re.escape(model_name) + r'.*(?i:\.md)')
 		txt_pattern = re.compile(r'.*' + re.escape(model_name) + r'.*(?i:\.txt)')
@@ -201,20 +217,24 @@ def search_and_display_previews(model_name, paths):
 
 		# loop through all files in the path and any subdirectories
 		for dirpath, dirnames, filenames in os.walk(path, followlinks=True):
-			for filename in filenames:
-				file_path = os.path.join(dirpath, filename)
-				if html_pattern.match(filename):
-					# prioritize html files, if you find one, just return it
-					return create_html_iframe(file_path, is_in_a1111_dir), None, None
-				if md_pattern.match(filename):
-					# there can only be one markdown file, if one was already found it is replaced
-					md_file = file_path
-				if img_pattern.match(filename):
-					# there can be many images, even spread accross the multiple paths
-					html_code_list.append(create_html_img(file_path, is_in_a1111_dir))
-				if txt_pattern.match(filename):
-					# there can only be one text file, if one was already found it is replaced
-					found_txt_file = file_path
+			# get a list of all parent directories
+			directories = dirpath.split(os.path.sep)
+			# if we are not using folder match mode look for files normally otherwise we are using folder match mode so make sure at least one parent directory is equal to the name of the model
+			if shared.opts.model_preview_xd_name_matching != "Folder" or (shared.opts.model_preview_xd_name_matching == "Folder" and model_name in directories):
+				for filename in filenames:
+					file_path = os.path.join(dirpath, filename)
+					if html_pattern.match(filename):
+						# prioritize html files, if you find one, just return it
+						return create_html_iframe(file_path, is_in_a1111_dir), None, None
+					if md_pattern.match(filename):
+						# there can only be one markdown file, if one was already found it is replaced
+						md_file = file_path
+					if img_pattern.match(filename):
+						# there can be many images, even spread accross the multiple paths
+						html_code_list.append(create_html_img(file_path, is_in_a1111_dir))
+					if txt_pattern.match(filename):
+						# there can only be one text file, if one was already found it is replaced
+						found_txt_file = file_path
 			
 	# if there were images found, wrap the images in a container div
 	html_code_output = '<div class="img-container-set">' + ''.join(html_code_list) + '</div>' if len(html_code_list) > 0 else None
@@ -478,8 +498,8 @@ def on_ui_tabs():
 	return (modelpreview_interface, "Model Previews", "modelpreview_xd_interface"),
 
 def on_ui_settings():
-    section = ('model_preview_xd', "Model Preview XD")
-    shared.opts.add_option("strict_naming", shared.OptionInfo(False, "Use strict naming for preview files", section=section))
+	section = ('model_preview_xd', "Model Preview XD")
+	shared.opts.add_option("model_preview_xd_name_matching", shared.OptionInfo("Loose", "Name matching rule for preview files", gr.Radio, {"choices": ["Loose", "Strict", "Folder"]}, section=section))
 
 script_callbacks.on_ui_settings(on_ui_settings)
 script_callbacks.on_ui_tabs(on_ui_tabs)

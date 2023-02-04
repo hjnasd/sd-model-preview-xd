@@ -117,9 +117,30 @@ onUiUpdate(function() {
   registerClickEvents(gradioApp().querySelector('#txt2img_extra_refresh'), ['#cp_modelpreview_xd_refresh_sd_model','#lo_modelpreview_xd_refresh_sd_model','#hn_modelpreview_xd_refresh_sd_model','#em_modelpreview_xd_refresh_sd_model']);
   registerClickEvents(gradioApp().querySelector('#img2img_extra_refresh'), ['#cp_modelpreview_xd_refresh_sd_model','#lo_modelpreview_xd_refresh_sd_model','#hn_modelpreview_xd_refresh_sd_model','#em_modelpreview_xd_refresh_sd_model']);
 
-  let strict_naming_setting = gradioApp().querySelector("#settings_model_preview_xd #setting_strict_naming")
-  if (typeof strict_naming_setting != "undefined" && strict_naming_setting != null && !strict_naming_setting.hasAttribute("title")) {
-    strict_naming_setting.setAttribute("title", "Use a strict naming scheme for matching preview files. If your model is named 'model.ckpt' your preview files must be named in the following manner:\n • model.html\n • model.md\n • model.txt\n • model.webp\n • model.preview.png\n • model.3.jpg\n • model.preview.4.jpeg");
+  // Find the radio buttons used in the setting page and add a tooltip to them
+  let name_matching_setting = gradioApp().querySelector("#settings_model_preview_xd #setting_model_preview_xd_name_matching .gr-input-label:not([title])")
+  if (typeof name_matching_setting != "undefined" && name_matching_setting != null) {
+    // Get the span from the button that contains the text
+    let labelText = name_matching_setting.querySelector("span");
+    if(typeof labelText != "undefined" && labelText != null && typeof labelText.innerText != "undefined" && labelText.innerText != null) {
+      // Depending on the label text, choose an appropriate tooltip
+      let title = "";
+      switch (labelText.innerText) {
+        case "Loose":
+          title = "Use a loose naming scheme for matching preview files. Your preview files must contain the model name somewhere in their file name. If your model is named 'model.ckpt' your preview files must be named in the following manner:\n • mymodel.html\n • model_markdown.md\n • trigger_words_for_model.txt\n • model-image.webp\n • model.preview.png\n • my3Dmodel.jpg\n • modelling.jpeg";
+        break;
+        case "Strict":
+          title = "Use a strict naming scheme for matching preview files. If your model is named 'model.ckpt' your preview files must be named in the following manner:\n • model.html\n • model.md\n • model.txt\n • model.webp\n • model.preview.png\n • model.3.jpg\n • model.preview.4.jpeg";
+        break;
+        case "Folder":
+          title = "Use folder name matching. Will look for a folder within your model directory that matches your model's name (case sensitive) and will show any preview files found within that folder or any subfolders of that folder. If your model is named 'mymodel.ckpt' all preview files located in '/mymodel/' will be shown.";
+        break;
+      }
+      if (title != "") {
+        // add the tooltip to the label
+        name_matching_setting.setAttribute("title", title);
+      }
+    }
   }
 })
 
