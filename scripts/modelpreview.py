@@ -38,7 +38,8 @@ def import_lora_module_builtin():
 additional_networks = import_lora_module()
 additional_networks_builtin = import_lora_module_builtin()
 
-refresh_symbol = '\U0001f504'  # 🔄
+refresh_symbol = '🔄'
+update_symbol = '↙️'
 
 def is_subdirectory(parent_dir, child_dir):
 	# checks if the child directory is actually a child directory of the parent directory
@@ -59,24 +60,36 @@ def is_dir_in_list(dir_list, check_dir):
     # Check if the specified directory is in the list of directories
     return check_dir in dir_list
 
+# keep a copy of the choices to give control to user when to refresh
+checkpoint_choices = []
+embedding_choices = []
+hypernetwork_choices = []
+lora_choices = []
+
 def list_all_models():
+	global checkpoint_choices
 	# gets the list of checkpoints
 	model_list = sd_models.checkpoint_tiles()
-	return sorted(model_list, key=lambda x: x.lower())
+	checkpoint_choices = sorted(model_list, key=lambda x: x.lower())
+	return checkpoint_choices
 
 def list_all_embeddings():
+	global embedding_choices
 	# get the list of embeddings
 	list = [x for x in sd_hijack.model_hijack.embedding_db.word_embeddings.keys()]
 	list.extend([x for x in sd_hijack.model_hijack.embedding_db.skipped_embeddings.keys()])
-	return sorted(list, key=lambda x: x.lower())
+	embedding_choices = sorted(list, key=lambda x: x.lower())
+	return embedding_choices
 
 def list_all_hypernetworks():
+	global hypernetwork_choices
 	# get the list of hyperlinks
 	list = [x for x in shared.hypernetworks.keys()]
-	return sorted(list, key=lambda x: x.lower())
+	hypernetwork_choices = sorted(list, key=lambda x: x.lower())
+	return hypernetwork_choices
 	
 def list_all_loras():
-	global additional_networks, additional_networks_builtin
+	global lora_choices, additional_networks, additional_networks_builtin
 	# get the list of lora models
 	loras = []
 
@@ -99,23 +112,61 @@ def list_all_loras():
 		loras.extend(loras_list.keys())
 
 	# return the list
-	return sorted(loras, key=lambda x: x.lower())
+	lora_choices = sorted(loras, key=lambda x: x.lower())
+	return lora_choices
 
 def refresh_models():
+	global checkpoint_choices
 	# update the choices for the checkpoint list
-	return gr.Dropdown.update(choices=list_all_models())
+	checkpoint_choices = list_all_models()
+	return gr.Dropdown.update(choices=checkpoint_choices)
 
 def refresh_embeddings():
+	global embedding_choices
 	# update the choices for the embeddings list
-	return gr.Dropdown.update(choices=list_all_embeddings())
+	embedding_choices = list_all_embeddings()
+	return gr.Dropdown.update(choices=embedding_choices)
 
 def refresh_hypernetworks():
+	global hypernetwork_choices
 	# update the choices for the hypernetworks list
-	return gr.Dropdown.update(choices=list_all_hypernetworks())
+	hypernetwork_choices = list_all_hypernetworks()
+	return gr.Dropdown.update(choices=hypernetwork_choices)
 
 def refresh_loras():
+	global lora_choices
 	# update the choices for the lora list
-	return gr.Dropdown.update(choices=list_all_loras())
+	lora_choices = list_all_loras()
+	return gr.Dropdown.update(choices=lora_choices)
+
+def update_checkpoint(name):
+	# update the selected preview for checkpoint tab
+	new_choice = find_choice(checkpoint_choices, name)
+	return new_choice, *show_model_preview(new_choice)
+
+def update_embedding(name):
+	# update the selected preview for embedding tab
+	new_choice = find_choice(embedding_choices, name)
+	return new_choice, *show_embedding_preview(new_choice)
+
+def update_hypernetwork(name):
+	# update the selected preview for hypernetwork tab
+	new_choice = find_choice(hypernetwork_choices, name)
+	return new_choice, *show_hypernetwork_preview(new_choice)
+
+def update_lora(name):
+	# update the selected preview for lora tab
+	new_choice = find_choice(lora_choices, name)
+	return new_choice, *show_lora_preview(new_choice)
+
+def find_choice(list, name):
+	# clean the name from the list and match a choice to the model 
+	# TODO there could be name collisions here that may need to be handled in the future.
+	for choice in list:
+		cleaned_name = clean_modelname(choice)
+		if cleaned_name == name:
+			return choice
+	return name
 
 def create_html_iframe(file, is_in_a1111_dir):
 	if is_in_a1111_dir:
@@ -367,10 +418,13 @@ def on_ui_tabs():
 	with gr.Blocks() as modelpreview_interface:
 
 		# create a tab for the checkpoint previews
-		with gr.Tab("Checkpoints"):
+		with gr.Tab("Checkpoints", elem_id="model_preview_xd_checkpoints_tab"):
 			with gr.Row():
 				checkpoints_list = gr.Dropdown(label="Model", choices=list_all_models(), interactive=True, elem_id="cp_mp2_preview_model_list")
+			with gr.Row(elem_id="cp_modelpreview_xd_hidden_ui"):
 				refresh_checkpoint = gr.Button(value=refresh_symbol, elem_id="cp_modelpreview_xd_refresh_sd_model")
+				update_checkpoint_name = gr.Textbox(value="", elem_id="cp_modelpreview_xd_update_sd_model_text")
+				update_checkpoint_button = gr.Button(value=update_symbol, elem_id="cp_modelpreview_xd_update_sd_model")
 			with gr.Row():
 				checkpoint_text_area = gr.Textbox(label='Notes', interactive=False, lines=1, visible=False)
 			with gr.Row(elem_id="cp_modelpreview_xd_html_row"):
@@ -398,11 +452,27 @@ def on_ui_tabs():
 			]
 		)
 
+		update_checkpoint_button.click(
+			fn=update_checkpoint,
+			inputs=[
+				update_checkpoint_name,
+			],
+			outputs=[
+				checkpoints_list,
+				checkpoint_text_area,
+				checkpoint_preview_md,
+				checkpoint_preview_html,
+			]
+		)
+
 		# create a tab for the embedding previews
-		with gr.Tab("Embeddings"):
+		with gr.Tab("Embeddings", elem_id="model_preview_xd_embeddings_tab"):
 			with gr.Row():
 				embeddings_list = gr.Dropdown(label="Model", choices=list_all_embeddings(), interactive=True, elem_id="em_mp2_preview_model_list")
+			with gr.Row(elem_id="em_modelpreview_xd_hidden_ui"):
 				refresh_embedding = gr.Button(value=refresh_symbol, elem_id="em_modelpreview_xd_refresh_sd_model")
+				update_embedding_name = gr.Textbox(value="", elem_id="em_modelpreview_xd_update_sd_model_text")
+				update_embedding_button = gr.Button(value=update_symbol, elem_id="em_modelpreview_xd_update_sd_model")
 			with gr.Row():
 				embedding_text_area = gr.Textbox(label='Notes', interactive=False, lines=1, visible=False)
 			with gr.Row(elem_id="em_modelpreview_xd_html_row"):
@@ -430,11 +500,27 @@ def on_ui_tabs():
 			]
 		)
 
+		update_embedding_button.click(
+			fn=update_embedding,
+			inputs=[
+				update_embedding_name,
+			],
+			outputs=[
+				embeddings_list,
+				embedding_text_area,
+				embedding_preview_md,
+				embedding_preview_html,
+			]
+		)
+
 		# create a tab for the hypernetwork previews
-		with gr.Tab("Hypernetwork"):
+		with gr.Tab("Hypernetwork", elem_id="model_preview_xd_hypernetwork_tab"):
 			with gr.Row():
 				hypernetworks_list = gr.Dropdown(label="Model", choices=list_all_hypernetworks(), interactive=True, elem_id="hn_mp2_preview_model_list")
+			with gr.Row(elem_id="hn_modelpreview_xd_hidden_ui"):
 				refresh_hypernetwork = gr.Button(value=refresh_symbol, elem_id="hn_modelpreview_xd_refresh_sd_model")
+				update_hypernetwork_name = gr.Textbox(value="", elem_id="hn_modelpreview_xd_update_sd_model_text")
+				update_hypernetwork_button = gr.Button(value=update_symbol, elem_id="hn_modelpreview_xd_update_sd_model")
 			with gr.Row():
 				hypernetwork_text_area = gr.Textbox(label='Notes', interactive=False, lines=1, visible=False)
 			with gr.Row(elem_id="hn_modelpreview_xd_html_row"):
@@ -462,12 +548,28 @@ def on_ui_tabs():
 			]
 		)
 
+		update_hypernetwork_button.click(
+			fn=update_hypernetwork,
+			inputs=[
+				update_hypernetwork_name,
+			],
+			outputs=[
+				hypernetworks_list,
+				hypernetwork_text_area,
+				hypernetwork_preview_md,
+				hypernetwork_preview_html,
+			]
+		)
+
 		# create a tab for the lora previews if the module was loaded
 		if additional_networks is not None or additional_networks_builtin is not None:
-			with gr.Tab("Lora"):
+			with gr.Tab("Lora", elem_id="model_preview_xd_lora_tab"):
 				with gr.Row():
 					loras_list = gr.Dropdown(label="Model", choices=list_all_loras(), interactive=True, elem_id="lo_mp2_preview_model_list")
+				with gr.Row(elem_id="lo_modelpreview_xd_hidden_ui"):
 					refresh_lora = gr.Button(value=refresh_symbol, elem_id="lo_modelpreview_xd_refresh_sd_model")
+					update_lora_name = gr.Textbox(value="", elem_id="lo_modelpreview_xd_update_sd_model_text")
+					update_lora_button = gr.Button(value=update_symbol, elem_id="lo_modelpreview_xd_update_sd_model")
 				with gr.Row():
 					lora_text_area = gr.Textbox(label='Notes', interactive=False, lines=1, visible=False)
 				with gr.Row(elem_id="lo_modelpreview_xd_html_row"):
@@ -495,7 +597,20 @@ def on_ui_tabs():
 				]
 			)
 
-	return (modelpreview_interface, "Model Previews", "modelpreview_xd_interface"),
+			update_lora_button.click(
+				fn=update_lora,
+				inputs=[
+					update_lora_name,
+				],
+				outputs=[
+					loras_list,
+					lora_text_area,
+					lora_preview_md,
+					lora_preview_html,
+				]
+			)
+	
+	return (modelpreview_interface, "Model Pre​views", "modelpreview_xd_interface"),
 
 def on_ui_settings():
 	section = ('model_preview_xd', "Model Preview XD")

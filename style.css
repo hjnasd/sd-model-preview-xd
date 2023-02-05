@@ -7,6 +7,22 @@
 	flex: 1;
 }
 
+.extra-network-thumbs .card .actions .additional a.info {
+	left: unset;
+	right: 2px;
+	background: none;
+	font-size: 19pt;
+	color: white;
+	text-shadow: 0px 0px 5px black;
+	top: 2px;
+	user-select: all;
+}
+
+.extra-network-cards .card .actions:hover .additional{
+    display: flex;
+	justify-content: space-between;
+}
+
 #tab_modelpreview_xd_interface {
 	position: relative;
 	flex: 1;
@@ -58,10 +74,10 @@
 	height: 100%;
 }
 
-#tab_modelpreview_xd_interface #cp_modelpreview_xd_refresh_sd_model,
-#tab_modelpreview_xd_interface #em_modelpreview_xd_refresh_sd_model,
-#tab_modelpreview_xd_interface #hn_modelpreview_xd_refresh_sd_model,
-#tab_modelpreview_xd_interface #lo_modelpreview_xd_refresh_sd_model {
+#tab_modelpreview_xd_interface #cp_modelpreview_xd_hidden_ui,
+#tab_modelpreview_xd_interface #em_modelpreview_xd_hidden_ui,
+#tab_modelpreview_xd_interface #hn_modelpreview_xd_hidden_ui,
+#tab_modelpreview_xd_interface #lo_modelpreview_xd_hidden_ui {
 	display: none;
 }
 

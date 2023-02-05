@@ -1,3 +1,5 @@
+let previwTab = null;
+
 // Sync the refresh button for list with the invisible refresh button in the extension
 function registerClickEvents(refreshButton, invisible_button_id_selectors) {
   // Check if the button element exists and is not null
@@ -142,7 +144,120 @@ onUiUpdate(function() {
       }
     }
   }
+
+  // get the main tabs and specifically the button to switch to the preview tab
+  let tabs = gradioApp().querySelectorAll("#tabs > div:first-of-type button");
+  if(typeof tabs != "undefined" && tabs != null && tabs.length > 0) {
+    tabs.forEach(tab => {
+      if(tab.innerText == "Model Pre​views") {
+        previwTab = tab;
+      }
+    });
+  }
+
+  // get the thumb cards and inject a link that will pop the user back to the preview tab for that model
+  let thumbCards = gradioApp().querySelectorAll("#txt2img_extra_tabs .card .actions .additional:not([preview-hijack]), #img2img_extra_tabs .card .actions .additional:not([preview-hijack])");
+  if(typeof thumbCards != "undefined" && thumbCards != null && thumbCards.length > 0) {
+    thumbCards.forEach(card => {
+      let actionsElement = card.parentNode;
+      // the name of the model is stored in a span beside the .additional div
+      let nameSpan = actionsElement.querySelector('span.name');
+      let modelName = nameSpan.textContent;
+      
+      // get the id of the parent div to check what type of model this thumb card is for
+      let cardNetwork = actionsElement.parentNode.parentNode;
+      let id = cardNetwork.getAttribute("id");
+
+      let modelToSelect = '';
+      
+      // get the correct tab string for this type of model
+      switch(id) {
+        case "txt2img_textual inversion_cards":
+        case "img2img_textual inversion_cards":
+          modelToSelect = "Embeddings";
+        break;
+        case "txt2img_hypernetworks_cards":
+        case "img2img_hypernetworks_cards":
+          modelToSelect = "Hypernetwork";
+        break;
+        case "txt2img_lora_cards":
+        case "img2img_lora_cards":
+          modelToSelect = "Lora";
+        break;
+        case "txt2img_checkpoints_cards":
+        case "img2img_checkpoints_cards":
+          modelToSelect = "Checkpoints";
+        break;
+      }
+
+      // build out a new <ul> and <a> tag for linking to the preview tab
+      let ul = document.createElement("ul");
+      ul.innerHTML = `<a href="#" onclick="doCardClick(event, '${modelName}', '${modelToSelect}')" title="Go To Preview" target="_blank" class="info">ⓘ</a>`;
+      card.append(ul);
+      card.setAttribute("preview-hijack", true);
+    });
+  }
 })
+
+function doCardClick(event, name, modelType) {
+  // prevent the <a> tag from linking anywhere and prevent the default click action for clicking on a card
+  event.stopPropagation();
+  event.preventDefault();
+
+  // get the tabs that are in the preview extension
+  let tabs = gradioApp().querySelectorAll("#tab_modelpreview_xd_interface > div:first-of-type button");
+  if(typeof tabs != "undefined" && tabs != null && tabs.length > 0) {
+    tabs.forEach(tab => {
+      if(tab.innerText.trim() == modelType) {
+        // click on the tab to activate it
+        tab.click();
+        
+        let modelNameID = null;
+        let modelUpdateID = null;
+
+        // get the appropriate ids for the invisible text and button elements that will let us programtically set the dropdown later
+        switch (modelType) {
+          case "Hypernetwork":
+            modelNameID = "hn_modelpreview_xd_update_sd_model_text";
+            modelUpdateID = "hn_modelpreview_xd_update_sd_model";
+          break;
+          case "Lora":
+            modelNameID = "lo_modelpreview_xd_update_sd_model_text";
+            modelUpdateID = "lo_modelpreview_xd_update_sd_model";
+          break;
+          case "Embeddings":
+            modelNameID = "em_modelpreview_xd_update_sd_model_text";
+            modelUpdateID = "em_modelpreview_xd_update_sd_model";
+          break;
+          case "Checkpoints":
+            modelNameID = "cp_modelpreview_xd_update_sd_model_text";
+            modelUpdateID = "cp_modelpreview_xd_update_sd_model";
+          break;
+        }
+
+        // get the text area and the button
+        let modelName = gradioApp().querySelector(`#${modelNameID} textarea`);
+        let modelUpdate = gradioApp().querySelector(`#${modelUpdateID}`);
+
+        if(typeof modelName != "undefined" && modelName != null && 
+           typeof modelUpdate != "undefined" && modelUpdate != null) {
+          // set the textares value
+          modelName.value = name;
+          
+          // dispatch an event to triger the gradio update for the textarea
+          const inputEvent = new Event("input");
+          modelName.dispatchEvent(inputEvent);
+          // click the update button to trigger the python code to set the dropdown
+          modelUpdate.click();
+          // click on the model preview tab now that we have selected the right preview
+          setTimeout((event) => {
+            previwTab.click();
+          }, 100);
+        }
+      }
+    });
+  }
+}
 
 function metaDataCopy(event) {
   // get the textarea next to the image icon that has the meta data in it
