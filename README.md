@@ -65,53 +65,53 @@ This extension supports the folling model types in the the default directories:
 
 In the settings tab there is a page for Model Preivew XD where you can update the setting to use "Strict", "Loose", or "Folder" naming. Depending on that setting the rules for naming preview files will be slightly different.
 
-#### Strict Name Matching:
+- #### Strict Name Matching:
 
-Name your preview files the exact same as the model name. To support multiple images you can also choose to append to the model name `.preview` and/or `.1` (where 1 can be any number). 
+  Name your preview files the exact same as the model name. To support multiple images you can also choose to append to the model name `.preview` and/or `.1` (where 1 can be any number). 
 
-Here are a number of examples that will work with strict naming assuming your model is named `model.ckpt`:
+  Here are a number of examples that will work with strict naming assuming your model is named `model.ckpt`:
 
-- model.txt
-- model.md
-- model.html
-- model.png
-- model.preview.png
-- model.4.png
-- model.preview.7.png
+  - model.txt
+  - model.md
+  - model.html
+  - model.png
+  - model.preview.png
+  - model.4.png
+  - model.preview.7.png
 
-***Note** that in the example png images were used but you can use png, jpg, jpeg, or webm images*
+  ***Note** that in the example png images were used but you can use png, jpg, jpeg, or webm images*
 
-#### Loose Name Matching:
+- #### Loose Name Matching:
 
-The naming rule loose name matching preview files is that your model name has to appear anywhere in the file name. Please note this has the potential to return preview files for other models that are named similarly. For example, if you have a model named `my-checkpoint.ckpt` and `my-checkpoint2.ckpt` the extension will pick up preview files meant for `my-checkpoint2` in its search for preview files for `my-checkpoint`. You can avoid this my renaming `my-checkpoint` to `my-checkpoint1` (*Make sure to also update any existing preview files*).
+  The naming rule loose name matching preview files is that your model name has to appear anywhere in the file name. Please note this has the potential to return preview files for other models that are named similarly. For example, if you have a model named `my-checkpoint.ckpt` and `my-checkpoint2.ckpt` the extension will pick up preview files meant for `my-checkpoint2` in its search for preview files for `my-checkpoint`. You can avoid this my renaming `my-checkpoint` to `my-checkpoint1` (*Make sure to also update any existing preview files*).
 
-Here are a number of examples that will work with loose naming assuming your model is named `model.ckpt`:
+  Here are a number of examples that will work with loose naming assuming your model is named `model.ckpt`:
 
-- model_trigger_words.txt
-- model_readme.md
-- my_model_webpage.html
-- model.png
-- model_preview.png
-- model.image.png
-- 3D_modelling_checkpoint.png
+  - model_trigger_words.txt
+  - model_readme.md
+  - my_model_webpage.html
+  - model.png
+  - model_preview.png
+  - model.image.png
+  - 3D_modelling_checkpoint.png
 
-***Note** that in the example png images were used but you can use png, jpg, jpeg, or webm images*
+  ***Note** that in the example png images were used but you can use png, jpg, jpeg, or webm images*
 
-***Also note** that preview files that appear to be for other checkpoints have also been returned*
+  ***Also note** that preview files that appear to be for other checkpoints have also been returned*
 
-#### Folder Name Matching:
+- #### <u>Folder Name Matching:</u>
 
-When using folder name matching the extension will look for a folder matching your model name and return any preview files found within, including subdirectories.
+  When using folder name matching the extension will look for a folder matching your model name and return any preview files found within, including subdirectories.
 
-Here are a number of examples that will work with folder naming assuming your model is named `model.ckpt`:
+  Here are a number of examples that will work with folder naming assuming your model is named `model.ckpt`:
 
-- /Stable-diffusion/model/trigger_words.txt
-- /Stable-diffusion/model/readme.md
-- /Stable-diffusion/model/info.html
-- /Stable-diffusion/model/0.png
-- /Stable-diffusion/model/preview.png
+  - /Stable-diffusion/model/trigger_words.txt
+  - /Stable-diffusion/model/readme.md
+  - /Stable-diffusion/model/info.html
+  - /Stable-diffusion/model/0.png
+  - /Stable-diffusion/model/preview.png
 
-***Note** that in the example png images were used but you can use png, jpg, jpeg, or webm images*
+  ***Note** that in the example png images were used but you can use png, jpg, jpeg, or webm images*
 
 ### Changing Default Directories
 
