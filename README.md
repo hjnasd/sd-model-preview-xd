@@ -39,21 +39,31 @@ This extension supports the folling model types in the the default directories:
 
 1. You can save the `README.md` file from a models huggingface page to use as your model preview:
 
-![screenshot of markdown example](https://github.com/CurtisDS/sd-model-preview-xd/raw/main/sd-model-preview-xd-markdown-example.png)
+      ![screenshot of markdown example](https://github.com/CurtisDS/sd-model-preview-xd/raw/main/sd-model-preview-xd-markdown-example.png)
 
 2. You can save the model's Civitai page (using <kbd>Ctrl</kbd>+<kbd>S</kbd> in your browser) to use the Civitai page as your model preview:
-
-![screenshot of html example](https://github.com/CurtisDS/sd-model-preview-xd/raw/main/sd-model-preview-xd-html-example.png)
+      
+      ![screenshot of html example](https://github.com/CurtisDS/sd-model-preview-xd/raw/main/sd-model-preview-xd-html-example.png)
 
 3. If you want to keep it clean, create a simple .txt file with the trigger words and save a few sample images:
 
-![screenshot of text and images example](https://github.com/CurtisDS/sd-model-preview-xd/raw/main/sd-model-preview-xd-text-and-image-example.png)
+      ![screenshot of text and images example](https://github.com/CurtisDS/sd-model-preview-xd/raw/main/sd-model-preview-xd-text-and-image-example.png)
+
+4. You can now taken linked directly to the preview files of a model by clicking on the `ⓘ` in the extra networks thumbnail cards.
+
+      - When `Default view for Extra Networks` is set to `cards`:
+
+          ![image](https://user-images.githubusercontent.com/20732674/216813267-c8539ae3-c318-42fa-b5db-f89176993fbc.png)
+
+      - When `Default view for Extra Networks` is set to `thumbs`:
+
+          ![image](https://user-images.githubusercontent.com/20732674/216813283-2e4f874f-3afa-4088-98eb-95bff0566ec8.png)
 
 ## Things to watch out for
 
 ### Name Matching Rules
 
-In the settings tab there is a page for Model Preivew XD where you can update the setting to use strict naming. Depending on that setting the rules for naming preview files will be slightly different.
+In the settings tab there is a page for Model Preivew XD where you can update the setting to use "Strict", "Loose", or "Folder" naming. Depending on that setting the rules for naming preview files will be slightly different.
 
 #### Strict Name Matching:
 
@@ -73,7 +83,7 @@ Here are a number of examples that will work with strict naming assuming your mo
 
 #### Loose Name Matching:
 
-If you do not have strict naming turned on then the rule for matching preview file names will be just that your model name has to appear anywhere in the file name. Please note this has the potential to return preview files for other models that are named similarly. For example, if you have a model named `my-checkpoint.ckpt` and `my-checkpoint2.ckpt` the extension will pick up preview files meant for `my-checkpoint2` in its search for preview files for `my-checkpoint`. You can avoid this my renaming `my-checkpoint` to `my-checkpoint1` (*Make sure to also update any existing preview files*).
+The naming rule loose name matching preview files is that your model name has to appear anywhere in the file name. Please note this has the potential to return preview files for other models that are named similarly. For example, if you have a model named `my-checkpoint.ckpt` and `my-checkpoint2.ckpt` the extension will pick up preview files meant for `my-checkpoint2` in its search for preview files for `my-checkpoint`. You can avoid this my renaming `my-checkpoint` to `my-checkpoint1` (*Make sure to also update any existing preview files*).
 
 Here are a number of examples that will work with loose naming assuming your model is named `model.ckpt`:
 
@@ -89,33 +99,47 @@ Here are a number of examples that will work with loose naming assuming your mod
 
 ***Also note** that preview files that appear to be for other checkpoints have also been returned*
 
+#### Folder Name Matching:
+
+When using folder name matching the extension will look for a folder matching your model name and return any preview files found within, including subdirectories.
+
+Here are a number of examples that will work with folder naming assuming your model is named `model.ckpt`:
+
+- /Stable-diffusion/model/trigger_words.txt
+- /Stable-diffusion/model/readme.md
+- /Stable-diffusion/model/info.html
+- /Stable-diffusion/model/0.png
+- /Stable-diffusion/model/preview.png
+
+***Note** that in the example png images were used but you can use png, jpg, jpeg, or webm images*
+
 ### Changing Default Directories
 
 Gradio (the software Automatic1111 is built on) doesn't support linking to files outside of the Automatic1111 install directory through the webui. So if you have used symlinks or Automatic1111's built in command line arguments to change the directories for your models to something outside of the Automatic1111 directory you will need to take advantage of one of the following workarounds for your previews to work.
 
 1. If you use the command line arguments to change the directories for your models the extension will look in both the default directories and the custom directories for preview files. So you could change the directory for your models and leave your preview files in the default directories, this will keep them within the install directory and remove the issues with linking.
 
-<details>
-<summary>Click here for a quick guide on how to change directories without using symlinks.</summary>
-​
+      <details>
+      <summary>Click here for a quick guide on how to change directories without using symlinks.</summary>
+      ​
 
-If you want to change the directories for models add these settings to your `webui-user.bat` `COMMANDLINE_ARGS` for each model type:
+      If you want to change the directories for models add these settings to your `webui-user.bat` `COMMANDLINE_ARGS` for each model type:
 
-`--ckpt-dir "D:\\my models\\checkpoints"`
+      `--ckpt-dir "D:\\my models\\checkpoints"`
 
-`--hypernetwork-dir "D:\\my models\\hypernetworks"`
+      `--hypernetwork-dir "D:\\my models\\hypernetworks"`
 
-`--embeddings-dir "D:\\my models\\embeddings"`
+      `--embeddings-dir "D:\\my models\\embeddings"`
 
-`--lora-dir "D:\\my models\\lora"`
+      `--lora-dir "D:\\my models\\lora"`
 
-If you wanted to use all the settings at once your COMMANDLINE_ARGS line would look something like this:
+      If you wanted to use all the settings at once your COMMANDLINE_ARGS line would look something like this:
 
-```bash
-set COMMANDLINE_ARGS=--xformers --api --ckpt-dir "D:\\my models\\checkpoints" --hypernetwork-dir "D:\\my models\\hypernetworks" --embeddings-dir "D:\\my models\\embeddings" --lora-dir "D:\\my models\\lora"
-```
+      ```bash
+      set COMMANDLINE_ARGS=--xformers --api --ckpt-dir "D:\\my models\\checkpoints" --hypernetwork-dir "D:\\my models\\hypernetworks" --embeddings-dir "D:\\my models\\embeddings" --lora-dir "D:\\my models\\lora"
+      ```
 
-</details>
+      </details>
 
 2. The extension can detect if a preview file is outside of the install directory and alter how it handles the preview to try and avoid some of the issues with linking files in the webui. The following differences will occur:
 - **Text files**: Nothing will change, it will work the same as if it was in the install directory.
