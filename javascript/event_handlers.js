@@ -174,6 +174,8 @@ onUiUpdate(function() {
       switch(id) {
         case "txt2img_textual inversion_cards":
         case "img2img_textual inversion_cards":
+        case "txt2img_textual_inversion_cards":
+        case "img2img_textual_inversion_cards":
           modelToSelect = "Embeddings";
         break;
         case "txt2img_hypernetworks_cards":
