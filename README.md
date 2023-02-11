@@ -37,19 +37,19 @@ This extension supports the folling model types in the the default directories:
 
 ## Tips
 
-1. You can save the `README.md` file from a models huggingface page to use as your model preview:
+1. <a name="tips-1"></a>You can save the `README.md` file from a models huggingface page to use as your model preview:
 
       ![screenshot of markdown example](https://github.com/CurtisDS/sd-model-preview-xd/raw/main/sd-model-preview-xd-markdown-example.png)
 
-2. You can save the model's Civitai page (using <kbd>Ctrl</kbd>+<kbd>S</kbd> in your browser) to use the Civitai page as your model preview:
+2. <a name="tips-2"></a>You can save the model's Civitai page (using <kbd>Ctrl</kbd>+<kbd>S</kbd> in your browser) to use the Civitai page as your model preview:
       
       ![screenshot of html example](https://github.com/CurtisDS/sd-model-preview-xd/raw/main/sd-model-preview-xd-html-example.png)
 
-3. If you want to keep it clean, create a simple .txt file with the trigger words and save a few sample images:
+3. <a name="tips-3"></a>If you want to keep it clean, create a simple .txt file with the trigger words and save a few sample images:
 
       ![screenshot of text and images example](https://github.com/CurtisDS/sd-model-preview-xd/raw/main/sd-model-preview-xd-text-and-image-example.png)
 
-4. You can now taken linked directly to the preview files of a model by clicking on the `ⓘ` in the extra networks thumbnail cards.
+4. <a name="tips-4"></a>You can now be linked directly to the preview files of a model by clicking on the `ⓘ` in the extra networks thumbnail cards.
 
       - When `Default view for Extra Networks` is set to `cards`:
 
