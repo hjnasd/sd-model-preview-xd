@@ -218,6 +218,9 @@ def create_html_img(file, is_in_a1111_dir):
 	# return the html code
 	return html_code
 
+def natural_order_number(s):
+	# split a string into segments of strings and ints that will be used to sort naturally
+    return [int(x) if x.isdigit() else x for x in re.split('(\d+)', s)]
 
 def search_and_display_previews(model_name, paths):
 	# create patters for the supported preview file types
@@ -227,29 +230,29 @@ def search_and_display_previews(model_name, paths):
 		# Using a loose naming rule preview files for 'checkpoint10000' would show up for 'checkpoint1000'
 		# The rules for strict naming are:
 		# HTML previews should follow {model}.html example 'checkpoint1000.html'
-		html_pattern = re.compile(re.escape(model_name) + r'(?i:\.html)')
+		html_pattern = re.compile(r'^' + re.escape(model_name) + r'(?i:\.html)$')
 		# Markdown previews should follow {model}.md example 'checkpoint1000.md'
-		md_pattern = re.compile(re.escape(model_name) + r'(?i:\.md)')
+		md_pattern = re.compile(r'^' + re.escape(model_name) + r'(?i:\.md)$')
 		# Text files previews should follow {model}.txt example 'checkpoint1000.txt'
-		txt_pattern = re.compile(re.escape(model_name) + r'(?i:\.txt)')
+		txt_pattern = re.compile(r'^' + re.escape(model_name) + r'(?i:\.txt)$')
 		# Images previews should follow {model}.{extension} or {model}.preview.{extension} or {model}.{number}.{extension} or {model}.preview.{number}.{extension}
 		# example 1 'checkpoint1000.png'
 		# example 2 'checkpoint1000.preview.jpg'
 		# example 3 'checkpoint1000.1.jpeg'
 		# example 4 'checkpoint1000.preview.1.webp'
-		img_pattern = re.compile(re.escape(model_name) + r'(?i:(\.preview)?(\.\d+)?\.(png|jpg|jpeg|webp|jxk|avif))')
+		img_pattern = re.compile(r'^' + re.escape(model_name) + r'(?i:(\.preview)?(\.\d+)?\.(png|jpg|jpeg|webp|jxk|avif))$')
 	elif shared.opts.model_preview_xd_name_matching == "Folder":
-		# use a folder name matching that only requres the model name to show up somewhere in the folder path not the file name name
-		html_pattern = re.compile(r'.*(?i:\.html)')
-		md_pattern = re.compile(r'.*(?i:\.md)')
-		txt_pattern = re.compile(r'.*(?i:\.txt)')
-		img_pattern = re.compile(r'.*(?i:\.(png|jpg|jpeg|webp|jxk|avif))')
+		# use a folder name matching that only requires the model name to show up somewhere in the folder path not the file name name
+		html_pattern = re.compile(r'^.*(?i:\.html)$')
+		md_pattern = re.compile(r'^.*(?i:\.md)$')
+		txt_pattern = re.compile(r'^.*(?i:\.txt)$')
+		img_pattern = re.compile(r'^.*(?i:\.(png|jpg|jpeg|webp|jxk|avif))$')
 	else:
-		# use a loose name matching that only requres the model name to show up somewhere in the file name
-		html_pattern = re.compile(r'.*' + re.escape(model_name) + r'.*(?i:\.html)')
-		md_pattern = re.compile(r'.*' + re.escape(model_name) + r'.*(?i:\.md)')
-		txt_pattern = re.compile(r'.*' + re.escape(model_name) + r'.*(?i:\.txt)')
-		img_pattern = re.compile(r'.*' + re.escape(model_name) + r'.*(?i:\.(png|jpg|jpeg|webp|jxk|avif))')
+		# use a loose name matching that only requires the model name to show up somewhere in the file name
+		html_pattern = re.compile(r'^.*' + re.escape(model_name) + r'.*(?i:\.html)$')
+		md_pattern = re.compile(r'^.*' + re.escape(model_name) + r'.*(?i:\.md)$')
+		txt_pattern = re.compile(r'^.*' + re.escape(model_name) + r'.*(?i:\.txt)$')
+		img_pattern = re.compile(r'^.*' + re.escape(model_name) + r'.*(?i:\.(png|jpg|jpeg|webp|jxk|avif))$')
 	
 	# an array to hold the image html code
 	html_code_list = []
@@ -272,7 +275,10 @@ def search_and_display_previews(model_name, paths):
 			directories = dirpath.split(os.path.sep)
 			# if we are not using folder match mode look for files normally otherwise we are using folder match mode so make sure at least one parent directory is equal to the name of the model
 			if shared.opts.model_preview_xd_name_matching != "Folder" or (shared.opts.model_preview_xd_name_matching == "Folder" and model_name in directories):
-				for filename in filenames:
+				# sort the file names using a natural sort algorithm
+				sorted_filenames = sorted(filenames, key=natural_order_number)
+				# check each file to see if it is a preview file
+				for filename in sorted_filenames:
 					file_path = os.path.join(dirpath, filename)
 					if html_pattern.match(filename):
 						# prioritize html files, if you find one, just return it
@@ -381,18 +387,19 @@ def show_preview(name, paths):
 
 	# if a text file was found update the gradio text element
 	if found_txt_file:
+		output_text = ""
 		with open(found_txt_file, "r", encoding="utf8") as file:
-				output_text = ""
-				for line in file:
-					output_text = f'{output_text}{line.strip()}\n'
+			for line in file:
+				output_text = f'{output_text}{line.strip()}\n'
 		txt_update = gr.Textbox.update(value=output_text, visible=True)
 	else:
 		txt_update = gr.Textbox.update(value=None, visible=False)
 	
 	# if a markdown file was found update the gradio markdown element
 	if found_md_file:
+		output_text = ""
 		with open(found_md_file, "r", encoding="utf8") as file:
-				output_text = file.read()
+			output_text = file.read()
 		md_update = gr.Textbox.update(value=output_text, visible=True)
 	else:
 		md_update = gr.Textbox.update(value=None, visible=False)
