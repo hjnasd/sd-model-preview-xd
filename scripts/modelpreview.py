@@ -53,12 +53,15 @@ def is_subdirectory(parent_dir, child_dir):
 	return common_prefix == parent_dir and child_dir != parent_dir
 
 def is_dir_in_list(dir_list, check_dir):
-    # Convert all directories in the list to absolute paths
-    dir_list = [os.path.abspath(d) for d in dir_list]
-    # Convert the specified directory to an absolute path
-    check_dir = os.path.abspath(check_dir)
-    # Check if the specified directory is in the list of directories
-    return check_dir in dir_list
+	# Convert all directories in the list to absolute paths
+	dir_list = [os.path.abspath(d) for d in dir_list]
+	# Convert the specified directory to an absolute path
+	check_dir = os.path.abspath(check_dir)
+	# Check if the specified directory is in the list of directories
+	for dir_path in dir_list:
+		if os.path.samefile(check_dir, dir_path):
+			return True
+	return False
 
 # keep a copy of the choices to give control to user when to refresh
 checkpoint_choices = []
@@ -369,7 +372,6 @@ def show_lora_preview(modelname=None):
 	# add directories from the thirdparty lora extension if exists
 	if additional_networks is not None:
 		# use the same pattern as the additional_networds.py extention to build up a list of paths to check for lora models and preview files
-		directories.append(additional_networks.lora_models_dir)
 		set_dir = additional_networks.lora_models_dir
 		if set_dir is not None and not is_dir_in_list(directories, set_dir):
 			directories.append(set_dir)
