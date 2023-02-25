@@ -11,7 +11,7 @@ import importlib.util
 def import_lora_module():
 	# import/update the lora module if its available
 	try:
-		spec = importlib.util.find_spec('extensions.sd-webui-additional-networks.scripts.additional_networks')
+		spec = importlib.util.find_spec('extensions.sd-webui-additional-networks.scripts.model_util')
 		if spec:
 			additional_networks = importlib.util.module_from_spec(spec)
 			spec.loader.exec_module(additional_networks)
@@ -90,8 +90,8 @@ def list_all_hypernetworks():
 	
 def list_all_loras():
 	global lora_choices, additional_networks, additional_networks_builtin
-	# get the list of lora models
-	loras = []
+	# create an empty set for lora models
+	loras = set()
 
 	# import/update the lora module
 	additional_networks = import_lora_module()
@@ -100,7 +100,9 @@ def list_all_loras():
 		loras_list = additional_networks.lora_models.copy()
 		# remove the None item from the lsit
 		loras_list.pop("None", None)
-		loras.extend(loras_list.keys())
+		# remove hash from model
+		loras_list = [re.sub(r'\([a-fA-F0-9]{10,12}\)$', '', model) for model in loras_list.keys()]
+		loras.update(loras_list)
 
 	# import/update the builtin lora module
 	additional_networks_builtin = import_lora_module_builtin()
@@ -109,7 +111,7 @@ def list_all_loras():
 		loras_list = additional_networks_builtin.available_loras.copy()
 		# remove the None item from the lsit
 		loras_list.pop("None", None)
-		loras.extend(loras_list.keys())
+		loras.update(loras_list.keys())
 
 	# return the list
 	lora_choices = sorted(loras, key=lambda x: x.lower())
@@ -306,7 +308,7 @@ def clean_modelname(modelname):
 	modelname = name + ext	
 	# remove the extension and the hash if it exists at the end of the model name (this is added by a1111) and 
 	# if the model name contains a path (which happens when a checkpoint is in a subdirectory) just return the model name portion
-	return re.sub(r"(\.pt|\.bin|\.ckpt|\.safetensors)?( \[[a-fA-F0-9]{10}\])?$", "", modelname).split("\\")[-1].split("/")[-1]
+	return re.sub(r"(\.pt|\.bin|\.ckpt|\.safetensors)?( \[[a-fA-F0-9]{10,12}\])?$", "", modelname).split("\\")[-1].split("/")[-1]
 
 def show_model_preview(modelname=None):
 	# remove the hash if exists, the extension, and if the string is a path just return the file name
@@ -342,7 +344,7 @@ def show_hypernetwork_preview(modelname=None):
 		# WARNING: html files and markdown files that link to local files outside of the automatic1111 directory will not work correctly
 		directories.append(set_dir)
 	# in older versions of a1111 the hash was included at the end in brackets, remove the hash if you find it
-	modelname = re.sub(r"(\([a-fA-F0-9]{10}\))?$", "", modelname)
+	modelname = re.sub(r"(\([a-fA-F0-9]{10,12}\))?$", "", modelname)
 	# get preview for the model
 	return show_preview(modelname, directories)
 
@@ -376,7 +378,7 @@ def show_lora_preview(modelname=None):
 			directories.append(extra_lora_path)
 
 	# in older versions of a1111 the hash was included at the end in brackets, remove the hash if you find it
-	modelname = re.sub(r"(\([a-fA-F0-9]{10}\))?$", "", modelname)
+	modelname = re.sub(r"(\([a-fA-F0-9]{10,12}\))?$", "", modelname)
 	# get preview for the model
 	return show_preview(modelname, directories)
 
