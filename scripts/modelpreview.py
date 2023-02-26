@@ -63,17 +63,67 @@ def is_dir_in_list(dir_list, check_dir):
 			return True
 	return False
 
+def natural_order_number(s):
+	# split a string into segments of strings and ints that will be used to sort naturally
+    return [int(x) if x.isdigit() else x.lower() for x in re.split('(\d+)', s)]
+	
 # keep a copy of the choices to give control to user when to refresh
 checkpoint_choices = []
 embedding_choices = []
 hypernetwork_choices = []
 lora_choices = []
+tags = {
+	"checkpoints": {},
+	"embeddings": {},
+	"hypernetworks": {},
+	"loras": {}
+}
+
+def search_for_tags(model_names, model_tags, paths):
+	
+	general_tag_pattern = re.compile(r'^.*(?i:\.tags)$')
+
+	# support the ability to check multiple paths
+	for path in paths:
+		# loop through all files in the path and any subdirectories
+		for dirpath, dirnames, filenames in os.walk(path, followlinks=True):
+			# get a list of all parent directories
+			directories = dirpath.split(os.path.sep)
+			# check each file to see if it is a preview file
+			for filename in filenames:
+				file_path = os.path.join(dirpath, filename)
+				if general_tag_pattern.match(filename):
+					for model_name in model_names:
+						clean_model_name = clean_modelname(model_name)
+
+						# if we are not using folder match mode look for files normally otherwise we are using folder match mode so make sure at least one parent directory is equal to the name of the model
+						if shared.opts.model_preview_xd_name_matching == "Folder" and clean_model_name not in directories:
+							continue
+
+						if shared.opts.model_preview_xd_name_matching == "Strict":
+							tag_pattern = re.compile(r'^' + re.escape(clean_model_name) + r'(?i:\.tags)$')
+						elif shared.opts.model_preview_xd_name_matching == "Folder":
+							tag_pattern = re.compile(r'^.*(?i:\.tags)$')
+						else:
+							tag_pattern = re.compile(r'^.*' + re.escape(clean_model_name) + r'.*(?i:\.tags)$')
+
+						if tag_pattern.match(filename):
+							output_text = ""
+							with open(file_path, "r", encoding="utf8") as file:
+								output_text = file.read()
+							if output_text.strip() != "":
+								if model_name in model_tags:
+									model_tags[model_name] += f", {output_text}"
+								else:
+									model_tags[model_name] = output_text
 
 def list_all_models():
 	global checkpoint_choices
 	# gets the list of checkpoints
+	print("refresh models")
 	model_list = sd_models.checkpoint_tiles()
-	checkpoint_choices = sorted(model_list, key=lambda x: x.lower())
+	checkpoint_choices = sorted(model_list, key=natural_order_number)
+	search_for_tags(checkpoint_choices, tags["checkpoints"], get_checkpoints_dirs())
 	return checkpoint_choices
 
 def list_all_embeddings():
@@ -81,14 +131,16 @@ def list_all_embeddings():
 	# get the list of embeddings
 	list = [x for x in sd_hijack.model_hijack.embedding_db.word_embeddings.keys()]
 	list.extend([x for x in sd_hijack.model_hijack.embedding_db.skipped_embeddings.keys()])
-	embedding_choices = sorted(list, key=lambda x: x.lower())
+	embedding_choices = sorted(list, key=natural_order_number)
+	search_for_tags(embedding_choices, tags["embeddings"], get_embedding_dirs())
 	return embedding_choices
 
 def list_all_hypernetworks():
 	global hypernetwork_choices
 	# get the list of hyperlinks
 	list = [x for x in shared.hypernetworks.keys()]
-	hypernetwork_choices = sorted(list, key=lambda x: x.lower())
+	hypernetwork_choices = sorted(list, key=natural_order_number)
+	search_for_tags(hypernetwork_choices, tags["hypernetworks"], get_hypernetwork_dirs())
 	return hypernetwork_choices
 	
 def list_all_loras():
@@ -117,7 +169,8 @@ def list_all_loras():
 		loras.update(loras_list.keys())
 
 	# return the list
-	lora_choices = sorted(loras, key=lambda x: x.lower())
+	lora_choices = sorted(loras, key=natural_order_number)
+	search_for_tags(lora_choices, tags["loras"], get_lora_dirs())
 	return lora_choices
 
 def refresh_models():
@@ -143,6 +196,46 @@ def refresh_loras():
 	# update the choices for the lora list
 	lora_choices = list_all_loras()
 	return gr.Dropdown.update(choices=lora_choices)
+
+def filter_models(filter=None):
+	filtered_checkpoint_choices = checkpoint_choices
+	if filter is not None and filter.strip() != "":
+		# filter the choices based on the provided filter string
+		filter_tags = [tag.strip().lower() for tag in filter.split(",")]
+		filtered_checkpoint_choices = [choice for choice in filtered_checkpoint_choices if 
+                              all(tag in tags["checkpoints"].get(choice, '').lower() for tag in filter_tags) or 
+                              any(tag in choice.lower() for tag in filter_tags)]
+	return gr.Dropdown.update(choices=filtered_checkpoint_choices)
+
+def filter_embeddings(filter=None):
+	filtered_embedding_choices = embedding_choices
+	if filter is not None and filter.strip() != "":
+		# filter the choices based on the provided filter string
+		filter_tags = [tag.strip().lower() for tag in filter.split(",")]
+		filtered_embedding_choices = [choice for choice in filtered_embedding_choices if 
+                              all(tag in tags["embeddings"].get(choice, '').lower() for tag in filter_tags) or 
+                              any(tag in choice.lower() for tag in filter_tags)]
+	return gr.Dropdown.update(choices=filtered_embedding_choices)
+
+def filter_hypernetworks(filter=None):
+	filtered_hypernetwork_choices = hypernetwork_choices
+	if filter is not None and filter.strip() != "":
+        # filter the choices based on the provided filter string and tags
+		filter_tags = [tag.strip().lower() for tag in filter.split(",")]
+		filtered_hypernetwork_choices = [choice for choice in filtered_hypernetwork_choices if 
+                              all(tag in tags["hypernetworks"].get(choice, '').lower() for tag in filter_tags) or 
+                              any(tag in choice.lower() for tag in filter_tags)]
+	return gr.Dropdown.update(choices=filtered_hypernetwork_choices)
+
+def filter_loras(filter=None):
+	filtered_lora_choices = lora_choices
+	if filter is not None and filter.strip() != "":
+		# filter the choices based on the provided filter string
+		filter_tags = [tag.strip().lower() for tag in filter.split(",")]
+		filtered_lora_choices = [choice for choice in filtered_lora_choices if 
+                              all(tag in tags["loras"].get(choice, '').lower() for tag in filter_tags) or 
+                              any(tag in choice.lower() for tag in filter_tags)]
+	return gr.Dropdown.update(choices=filtered_lora_choices)
 
 def update_checkpoint(name):
 	# update the selected preview for checkpoint tab
@@ -222,10 +315,6 @@ def create_html_img(file, is_in_a1111_dir):
 	html_code += "</div>\n"
 	# return the html code
 	return html_code
-
-def natural_order_number(s):
-	# split a string into segments of strings and ints that will be used to sort naturally
-    return [int(x) if x.isdigit() else x for x in re.split('(\d+)', s)]
 
 def search_and_display_previews(model_name, paths):
 	# create patters for the supported preview file types
@@ -311,50 +400,36 @@ def clean_modelname(modelname):
 	modelname = name + ext	
 	# remove the extension and the hash if it exists at the end of the model name (this is added by a1111) and 
 	# if the model name contains a path (which happens when a checkpoint is in a subdirectory) just return the model name portion
-	return re.sub(r"(\.pt|\.bin|\.ckpt|\.safetensors)?( \[[a-fA-F0-9]{10,12}\])?$", "", modelname).split("\\")[-1].split("/")[-1]
+	return re.sub(r"(\.pt|\.bin|\.ckpt|\.safetensors)?( \[[a-fA-F0-9]{10,12}\]|\([a-fA-F0-9]{10,12}\))?$", "", modelname).split("\\")[-1].split("/")[-1]
 
-def show_model_preview(modelname=None):
-	# remove the hash if exists, the extension, and if the string is a path just return the file name
-	modelname = clean_modelname(modelname)
+def get_checkpoints_dirs():
 	# create list of directories
 	directories = [os.path.join('models','Stable-diffusion')] # models/Stable-diffusion
 	set_dir = shared.cmd_opts.ckpt_dir
 	if set_dir is not None and not is_dir_in_list(directories, set_dir):
 		# WARNING: html files and markdown files that link to local files outside of the automatic1111 directory will not work correctly
 		directories.append(set_dir)
-	# get preview for the model
-	return show_preview(modelname, directories)
+	return directories
 
-def show_embedding_preview(modelname=None):
-	# remove the hash if exists, the extension, and if the string is a path just return the file name
-	modelname = clean_modelname(modelname)
+def get_embedding_dirs():
 	# create list of directories
 	directories = ['embeddings']
 	set_dir = shared.cmd_opts.embeddings_dir
 	if set_dir is not None and not is_dir_in_list(directories, set_dir):
 		# WARNING: html files and markdown files that link to local files outside of the automatic1111 directory will not work correctly
 		directories.append(set_dir)
-	# get preview for the model
-	return show_preview(modelname, directories)
+	return directories
 
-def show_hypernetwork_preview(modelname=None):
-	# remove the hash if exists, the extension, and if the string is a path just return the file name
-	modelname = clean_modelname(modelname)
+def get_hypernetwork_dirs():
 	# create list of directories
 	directories = [os.path.join('models','hypernetworks')] # models/hypernetworks
 	set_dir = shared.cmd_opts.hypernetwork_dir
 	if set_dir is not None and not is_dir_in_list(directories, set_dir):
 		# WARNING: html files and markdown files that link to local files outside of the automatic1111 directory will not work correctly
 		directories.append(set_dir)
-	# in older versions of a1111 the hash was included at the end in brackets, remove the hash if you find it
-	modelname = re.sub(r"(\([a-fA-F0-9]{10,12}\))?$", "", modelname)
-	# get preview for the model
-	return show_preview(modelname, directories)
+	return directories
 
-def show_lora_preview(modelname=None):
-	# remove the hash if exists, the extension, and if the string is a path just return the file name
-	modelname = clean_modelname(modelname)
-
+def get_lora_dirs():
 	# create list of directories
 	directories = []
 
@@ -362,13 +437,11 @@ def show_lora_preview(modelname=None):
 	default_dir = os.path.join("models","Lora") # models/Lora
 	if os.path.exists(default_dir) and os.path.isdir(default_dir):
 		directories.append(default_dir)
-
 	# add directories from the builtin lora extension if exists
 	set_dir = shared.cmd_opts.lora_dir
 	if set_dir is not None and not is_dir_in_list(directories, set_dir):
 		# WARNING: html files and markdown files that link to local files outside of the automatic1111 directory will not work correctly
 		directories.append(set_dir)
-
 	# add directories from the thirdparty lora extension if exists
 	if additional_networks is not None:
 		# use the same pattern as the additional_networds.py extention to build up a list of paths to check for lora models and preview files
@@ -378,11 +451,31 @@ def show_lora_preview(modelname=None):
 		extra_lora_path = shared.opts.data.get("additional_networks_extra_lora_path", None)
 		if extra_lora_path and os.path.exists(extra_lora_path) and not is_dir_in_list(directories, extra_lora_path):
 			directories.append(extra_lora_path)
+	return directories
 
-	# in older versions of a1111 the hash was included at the end in brackets, remove the hash if you find it
-	modelname = re.sub(r"(\([a-fA-F0-9]{10,12}\))?$", "", modelname)
+def show_model_preview(modelname=None):
+	# remove the hash if exists, the extension, and if the string is a path just return the file name
+	modelname = clean_modelname(modelname)
 	# get preview for the model
-	return show_preview(modelname, directories)
+	return show_preview(modelname, get_checkpoints_dirs())
+
+def show_embedding_preview(modelname=None):
+	# remove the hash if exists, the extension, and if the string is a path just return the file name
+	modelname = clean_modelname(modelname)
+	# get preview for the model
+	return show_preview(modelname, get_embedding_dirs())
+
+def show_hypernetwork_preview(modelname=None):
+	# remove the hash if exists, the extension, and if the string is a path just return the file name
+	modelname = clean_modelname(modelname)
+	# get preview for the model
+	return show_preview(modelname, get_hypernetwork_dirs())
+
+def show_lora_preview(modelname=None):
+	# remove the hash if exists, the extension, and if the string is a path just return the file name
+	modelname = clean_modelname(modelname)
+	# get preview for the model
+	return show_preview(modelname, get_lora_dirs())
 
 def show_preview(name, paths):
 	# get the preview data
@@ -432,6 +525,7 @@ def on_ui_tabs():
 		with gr.Tab("Checkpoints", elem_id="model_preview_xd_checkpoints_tab"):
 			with gr.Row():
 				checkpoints_list = gr.Dropdown(label="Model", choices=list_all_models(), interactive=True, elem_id="cp_mp2_preview_model_list")
+				filter_checkpoint = gr.Textbox(label="Filter", value="")
 			with gr.Row(elem_id="cp_modelpreview_xd_hidden_ui"):
 				refresh_checkpoint = gr.Button(value=refresh_symbol, elem_id="cp_modelpreview_xd_refresh_sd_model")
 				update_checkpoint_name = gr.Textbox(value="", elem_id="cp_modelpreview_xd_update_sd_model_text")
@@ -452,6 +546,16 @@ def on_ui_tabs():
 				checkpoint_text_area,
 				checkpoint_preview_md,
 				checkpoint_preview_html,
+			]
+		)
+
+		filter_checkpoint.change(
+			fn=filter_models,
+			inputs=[
+				filter_checkpoint,
+			],
+			outputs=[
+				checkpoints_list,
 			]
 		)
 
@@ -480,6 +584,7 @@ def on_ui_tabs():
 		with gr.Tab("Embeddings", elem_id="model_preview_xd_embeddings_tab"):
 			with gr.Row():
 				embeddings_list = gr.Dropdown(label="Model", choices=list_all_embeddings(), interactive=True, elem_id="em_mp2_preview_model_list")
+				filter_embedding = gr.Textbox(label="Filter", value="")
 			with gr.Row(elem_id="em_modelpreview_xd_hidden_ui"):
 				refresh_embedding = gr.Button(value=refresh_symbol, elem_id="em_modelpreview_xd_refresh_sd_model")
 				update_embedding_name = gr.Textbox(value="", elem_id="em_modelpreview_xd_update_sd_model_text")
@@ -500,6 +605,16 @@ def on_ui_tabs():
 				embedding_text_area,
 				embedding_preview_md,
 				embedding_preview_html,
+			]
+		)
+
+		filter_embedding.change(
+			fn=filter_embeddings,
+			inputs=[
+				filter_embedding,
+			],
+			outputs=[
+				embeddings_list,
 			]
 		)
 
@@ -528,6 +643,7 @@ def on_ui_tabs():
 		with gr.Tab("Hypernetwork", elem_id="model_preview_xd_hypernetwork_tab"):
 			with gr.Row():
 				hypernetworks_list = gr.Dropdown(label="Model", choices=list_all_hypernetworks(), interactive=True, elem_id="hn_mp2_preview_model_list")
+				filter_hypernetwork = gr.Textbox(label="Filter", value="")
 			with gr.Row(elem_id="hn_modelpreview_xd_hidden_ui"):
 				refresh_hypernetwork = gr.Button(value=refresh_symbol, elem_id="hn_modelpreview_xd_refresh_sd_model")
 				update_hypernetwork_name = gr.Textbox(value="", elem_id="hn_modelpreview_xd_update_sd_model_text")
@@ -548,6 +664,16 @@ def on_ui_tabs():
 				hypernetwork_text_area,
 				hypernetwork_preview_md,
 				hypernetwork_preview_html,
+			]
+		)
+
+		filter_hypernetwork.change(
+			fn=filter_hypernetworks,
+			inputs=[
+				filter_hypernetwork,
+			],
+			outputs=[
+				hypernetworks_list,
 			]
 		)
 
@@ -577,6 +703,7 @@ def on_ui_tabs():
 			with gr.Tab("Lora", elem_id="model_preview_xd_lora_tab"):
 				with gr.Row():
 					loras_list = gr.Dropdown(label="Model", choices=list_all_loras(), interactive=True, elem_id="lo_mp2_preview_model_list")
+					filter_lora = gr.Textbox(label="Filter", value="")
 				with gr.Row(elem_id="lo_modelpreview_xd_hidden_ui"):
 					refresh_lora = gr.Button(value=refresh_symbol, elem_id="lo_modelpreview_xd_refresh_sd_model")
 					update_lora_name = gr.Textbox(value="", elem_id="lo_modelpreview_xd_update_sd_model_text")
@@ -597,6 +724,16 @@ def on_ui_tabs():
 					lora_text_area,
 					lora_preview_md,
 					lora_preview_html,
+				]
+			)
+
+			filter_lora.change(
+				fn=filter_loras,
+				inputs=[
+					filter_lora,
+				],
+				outputs=[
+					loras_list,
 				]
 			)
 
