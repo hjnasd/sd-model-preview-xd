@@ -50,6 +50,17 @@ function setSelectValue(selectPreviewModelElement, selectSDModelElement) {
 
 // Is fired by automatic1111 when the UI is updated
 onUiUpdate(function() {
+  // There is a script containing settings for height
+  // Get the element and set the attribute to limit the hieght
+  let tabEl = gradioApp().getElementById('tab_modelpreview_xd_interface');
+  let jsonEl = gradioApp().getElementById('modelpreview_xd_setting_json');
+  if (typeof tabEl != 'undefined' && typeof jsonEl != 'undefined') {
+    let settingsJSON = JSON.parse(jsonEl.innerHTML);
+    if (settingsJSON.LimitSize) {
+      tabEl.setAttribute('limit-height', '');
+    }
+  }
+
   // Get the select element for the SD model checkpoint
   const selectSDModelElement = gradioApp().querySelector('#setting_sd_model_checkpoint select');
   // Check if the element exists and is not null

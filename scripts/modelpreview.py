@@ -581,6 +581,8 @@ def on_ui_tabs():
 	# create a gradio block
 	with gr.Blocks() as modelpreview_interface:
 
+		gr.HTML(elem_id='modelpreview_xd_setting', value='<script id="modelpreview_xd_setting_json" type="application/json">{ "LimitSize": ' + ( "true" if shared.opts.model_preview_xd_limit_sizing else "false" ) + ' }</script>')
+
 		# create a tab for the checkpoint previews
 		create_tab("Checkpoints", "cp",
 				list_all_models(),
@@ -615,6 +617,7 @@ def on_ui_tabs():
 def on_ui_settings():
 	section = ('model_preview_xd', "Model Preview XD")
 	shared.opts.add_option("model_preview_xd_name_matching", shared.OptionInfo("Loose", "Name matching rule for preview files", gr.Radio, {"choices": ["Loose", "Strict", "Folder"]}, section=section))
+	shared.opts.add_option("model_preview_xd_limit_sizing", shared.OptionInfo(True, "Limit the height of preivews to the height of the browser window (.html preview files are always limited regardless of this setting)", section=section))
 
 script_callbacks.on_ui_settings(on_ui_settings)
 script_callbacks.on_ui_tabs(on_ui_tabs)

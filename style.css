@@ -28,12 +28,20 @@
 	flex: 1;
 }
 
-#tab_modelpreview_xd_interface > div {
+#tab_modelpreview_xd_interface:not([limit-height]) > div {
+	height: 100%;
+}
+
+#tab_modelpreview_xd_interface[limit-height] > div {
 	position: absolute;
 	top: 5px;
 	bottom: 5px;
 	right: 5px;
 	left: 5px;
+}
+
+#tab_modelpreview_xd_interface #modelpreview_xd_setting {
+	position: absolute;
 }
 
 #tab_modelpreview_xd_interface > div > .tabs {
