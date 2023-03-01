@@ -88,6 +88,12 @@
 	flex-direction: column;
 }
 
+#tab_modelpreview_xd_interface .footer-tags {
+	font-size: 85%;
+	opacity: 0.85;
+	border-top: 2px solid #e5e7eb;
+}
+
 /* Meta Copy Styling */
 #cp_modelpreview_xd_html_div .img-meta,
 #em_modelpreview_xd_html_div .img-meta,
