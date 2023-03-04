@@ -41,6 +41,13 @@ additional_networks_builtin = import_lora_module_builtin()
 refresh_symbol = '🔄'
 update_symbol = '↙️'
 
+html_ext_pattern = r'html'
+md_ext_pattern = r'md'
+txt_ext_pattern = r'txt'
+tags_ext_pattern = r'tags'
+img_ext_pattern = r'(?:png|jpg|jpeg|webp|jxk|avif)'
+all_ext_pattern = r'(?:' + html_ext_pattern + r'|' + md_ext_pattern + r'|' + txt_ext_pattern + r'|' + tags_ext_pattern + r'|' + img_ext_pattern + r')'
+
 def is_subdirectory(parent_dir, child_dir):
 	# checks if the child directory is actually a child directory of the parent directory
 	parent_dir = os.path.abspath(os.path.realpath(parent_dir))
@@ -66,7 +73,16 @@ def is_dir_in_list(dir_list, check_dir):
 def natural_order_number(s):
 	# split a string into segments of strings and ints that will be used to sort naturally
     return [int(x) if x.isdigit() else x.lower() for x in re.split('(\d+)', s)]
-	
+
+def clean_modelname(modelname):
+	# convert the extension to lowercase if it exists
+	name, ext = os.path.splitext(modelname)
+	ext = ext.lower()
+	modelname = name + ext	
+	# remove the extension and the hash if it exists at the end of the model name (this is added by a1111) and 
+	# if the model name contains a path (which happens when a checkpoint is in a subdirectory) just return the model name portion
+	return re.sub(r"(\.pt|\.bin|\.ckpt|\.safetensors)?( \[[a-fA-F0-9]{10,12}\]|\([a-fA-F0-9]{10,12}\))?$", "", modelname).split("\\")[-1].split("/")[-1]
+
 # keep a copy of the choices to give control to user when to refresh
 checkpoint_choices = []
 embedding_choices = []
@@ -89,6 +105,18 @@ def search_for_tags(model_names, model_tags, paths):
 		for dirpath, dirnames, filenames in os.walk(path, followlinks=True):
 			# get a list of all parent directories
 			directories = dirpath.split(os.path.sep)
+
+
+			index_models = []
+			if shared.opts.model_preview_xd_name_matching == "Index":
+				index_txt_filename = next((filename for filename in filenames if filename.lower() == "index.txt"), None)
+				if index_txt_filename is not None:
+					index_txt_path = os.path.join(dirpath, index_txt_filename)
+					output_text = ""
+					with open(index_txt_path, "r", encoding="utf8") as file:
+						output_text = file.read()
+					index_models = [model.strip() for model in output_text.replace(",", "\n").splitlines()]
+
 			# check each file to see if it is a preview file
 			for filename in filenames:
 				file_path = os.path.join(dirpath, filename)
@@ -100,12 +128,22 @@ def search_for_tags(model_names, model_tags, paths):
 						if shared.opts.model_preview_xd_name_matching == "Folder" and clean_model_name not in directories:
 							continue
 
-						if shared.opts.model_preview_xd_name_matching == "Strict":
-							tag_pattern = re.compile(r'^' + re.escape(clean_model_name) + r'(?i:\.tags)$')
-						elif shared.opts.model_preview_xd_name_matching == "Folder":
-							tag_pattern = re.compile(r'^.*(?i:\.tags)$')
+						index_has_model = False
+						index_models_pattern = None
+						if shared.opts.model_preview_xd_name_matching == "Index":
+							index_has_model = clean_model_name in index_models
+							filtered_index_models = [re.escape(model) for model in index_models if model != clean_model_name]
+							if len(filtered_index_models) > 0:
+								index_models_pattern = re.compile(r'^(?:' + r'|'.join(filtered_index_models) + r')(?i:\.' + tags_ext_pattern + r')$')
+								if index_models_pattern.match(filename):
+									continue
+
+						if shared.opts.model_preview_xd_name_matching == "Strict" or (not index_has_model and shared.opts.model_preview_xd_name_matching == "Index"):
+							tag_pattern = re.compile(r'^' + re.escape(clean_model_name) + r'(?i:\.' + tags_ext_pattern + r')$')
+						elif shared.opts.model_preview_xd_name_matching == "Folder" or (index_has_model and shared.opts.model_preview_xd_name_matching == "Index"):
+							tag_pattern = re.compile(r'^.*(?i:\.' + tags_ext_pattern + r')$')
 						else:
-							tag_pattern = re.compile(r'^.*' + re.escape(clean_model_name) + r'.*(?i:\.tags)$')
+							tag_pattern = re.compile(r'^.*' + re.escape(clean_model_name) + r'.*(?i:\.' + tags_ext_pattern + r')$')
 
 						if tag_pattern.match(filename):
 							output_text = ""
@@ -302,36 +340,40 @@ def create_html_img(file, is_in_a1111_dir):
 	return html_code
 
 def search_and_display_previews(model_name, paths):
+	html_generic_pattern = re.compile(r'^.*(?i:\.' + html_ext_pattern+ r')$')
+	md_generic_pattern = re.compile(r'^.*(?i:\.' + md_ext_pattern+ r')$')
+	txt_generic_pattern = re.compile(r'^.*(?i:\.' + txt_ext_pattern+ r')$')
+	img_generic_pattern = re.compile(r'^.*(?i:\.' + img_ext_pattern + r')$')
 	# create patters for the supported preview file types
 	# `model_name` will be the name of the model to check for preview files for
-	if shared.opts.model_preview_xd_name_matching == "Strict":
+	if shared.opts.model_preview_xd_name_matching == "Strict" or shared.opts.model_preview_xd_name_matching == "Index":
 		# strict naming is intended to avoid name collision between 'checkpoint1000' and 'checkpoint10000'.
 		# Using a loose naming rule preview files for 'checkpoint10000' would show up for 'checkpoint1000'
 		# The rules for strict naming are:
 		# HTML previews should follow {model}.html example 'checkpoint1000.html'
-		html_pattern = re.compile(r'^' + re.escape(model_name) + r'(?i:\.html)$')
+		html_pattern = re.compile(r'^' + re.escape(model_name) + r'(?i:\.' + html_ext_pattern+ r')$')
 		# Markdown previews should follow {model}.md example 'checkpoint1000.md'
-		md_pattern = re.compile(r'^' + re.escape(model_name) + r'(?i:\.md)$')
+		md_pattern = re.compile(r'^' + re.escape(model_name) + r'(?i:\.' + md_ext_pattern+ r')$')
 		# Text files previews should follow {model}.txt example 'checkpoint1000.txt'
-		txt_pattern = re.compile(r'^' + re.escape(model_name) + r'(?i:\.txt)$')
+		txt_pattern = re.compile(r'^' + re.escape(model_name) + r'(?i:\.' + txt_ext_pattern+ r')$')
 		# Images previews should follow {model}.{extension} or {model}.preview.{extension} or {model}.{number}.{extension} or {model}.preview.{number}.{extension}
 		# example 1 'checkpoint1000.png'
 		# example 2 'checkpoint1000.preview.jpg'
 		# example 3 'checkpoint1000.1.jpeg'
 		# example 4 'checkpoint1000.preview.1.webp'
-		img_pattern = re.compile(r'^' + re.escape(model_name) + r'(?i:(\.preview)?(\.\d+)?\.(png|jpg|jpeg|webp|jxk|avif))$')
+		img_pattern = re.compile(r'^' + re.escape(model_name) + r'(?i:(?:\.preview)?(?:\.\d+)?\.' + img_ext_pattern + r')$')
 	elif shared.opts.model_preview_xd_name_matching == "Folder":
 		# use a folder name matching that only requires the model name to show up somewhere in the folder path not the file name name
-		html_pattern = re.compile(r'^.*(?i:\.html)$')
-		md_pattern = re.compile(r'^.*(?i:\.md)$')
-		txt_pattern = re.compile(r'^.*(?i:\.txt)$')
-		img_pattern = re.compile(r'^.*(?i:\.(png|jpg|jpeg|webp|jxk|avif))$')
+		html_pattern = html_generic_pattern
+		md_pattern = md_generic_pattern
+		txt_pattern = txt_generic_pattern
+		img_pattern = img_generic_pattern
 	else:
 		# use a loose name matching that only requires the model name to show up somewhere in the file name
-		html_pattern = re.compile(r'^.*' + re.escape(model_name) + r'.*(?i:\.html)$')
-		md_pattern = re.compile(r'^.*' + re.escape(model_name) + r'.*(?i:\.md)$')
-		txt_pattern = re.compile(r'^.*' + re.escape(model_name) + r'.*(?i:\.txt)$')
-		img_pattern = re.compile(r'^.*' + re.escape(model_name) + r'.*(?i:\.(png|jpg|jpeg|webp|jxk|avif))$')
+		html_pattern = re.compile(r'^.*' + re.escape(model_name) + r'.*(?i:\.' + html_ext_pattern+ r')$')
+		md_pattern = re.compile(r'^.*' + re.escape(model_name) + r'.*(?i:\.' + md_ext_pattern+ r')$')
+		txt_pattern = re.compile(r'^.*' + re.escape(model_name) + r'.*(?i:\.' + txt_ext_pattern+ r')$')
+		img_pattern = re.compile(r'^.*' + re.escape(model_name) + r'.*(?i:\.' + img_ext_pattern + r')$')
 	
 	# an array to hold the image html code
 	html_code_list = []
@@ -339,6 +381,15 @@ def search_and_display_previews(model_name, paths):
 	found_txt_file = None
 	# if a markdown file is found
 	md_file = None
+	# if an html file is found the iframe
+	html_file_frame = None
+
+	# if a text file is found
+	generic_found_txt_file = None
+	# if a markdown file is found
+	generic_md_file = None
+	# if an html file is found the iframe
+	generic_html_file_frame = None
 
 	# get the current directory so we can convert absolute paths to relative paths if we need to
 	current_directory = os.getcwd()
@@ -356,12 +407,44 @@ def search_and_display_previews(model_name, paths):
 			if shared.opts.model_preview_xd_name_matching != "Folder" or (shared.opts.model_preview_xd_name_matching == "Folder" and model_name in directories):
 				# sort the file names using a natural sort algorithm
 				sorted_filenames = sorted(filenames, key=natural_order_number)
+				index_has_model = False
+				index_models_pattern = None
+				if shared.opts.model_preview_xd_name_matching == "Index":
+					index_txt_filename = next((filename for filename in sorted_filenames if filename.lower() == "index.txt"), None)
+					if index_txt_filename is not None:
+						index_txt_path = os.path.join(dirpath, index_txt_filename)
+						output_text = ""
+						with open(index_txt_path, "r", encoding="utf8") as file:
+							output_text = file.read()
+						index_models = [model.strip() for model in output_text.replace(",", "\n").splitlines()]
+						index_has_model = model_name in index_models
+						index_models = [re.escape(model) for model in index_models if model != model_name]
+						if len(index_models) > 0:
+							index_models_pattern = re.compile(r'^(?:' + r'|'.join(index_models) + r')(?i:(?:\.preview)?(?:\.\d+)?\.' + all_ext_pattern + r')$')
 				# check each file to see if it is a preview file
 				for filename in sorted_filenames:
 					file_path = os.path.join(dirpath, filename)
+					if shared.opts.model_preview_xd_name_matching == "Index":
+						if index_models_pattern is not None and  (index_models_pattern.match(filename) or filename.lower() == "index.txt"):
+							# ignore preview files that strictly match any of the other models in the index file
+							continue
+						if index_has_model:
+							if html_generic_pattern.match(filename):
+								generic_html_file_frame = create_html_iframe(file_path, is_in_a1111_dir)
+							if md_generic_pattern.match(filename):
+								# there can only be one markdown file, if one was already found it is replaced
+								generic_md_file = file_path
+							if img_generic_pattern.match(filename):
+								# there can be many images, even spread accross the multiple paths
+								html_code_list.append(create_html_img(file_path, is_in_a1111_dir))
+							if txt_generic_pattern.match(filename):
+								# there can only be one text file, if one was already found it is replaced
+								generic_found_txt_file = file_path
 					if html_pattern.match(filename):
-						# prioritize html files, if you find one, just return it
-						return create_html_iframe(file_path, is_in_a1111_dir), None, None
+						html_file_frame = create_html_iframe(file_path, is_in_a1111_dir)
+						if shared.opts.model_preview_xd_name_matching != "Index" or not index_has_model:
+							# prioritize html files, if you find one, just return it
+							return html_file_frame, None, None
 					if md_pattern.match(filename):
 						# there can only be one markdown file, if one was already found it is replaced
 						md_file = file_path
@@ -371,21 +454,23 @@ def search_and_display_previews(model_name, paths):
 					if txt_pattern.match(filename):
 						# there can only be one text file, if one was already found it is replaced
 						found_txt_file = file_path
+	
+	if html_file_frame is None and generic_html_file_frame is not None:
+		html_file_frame = generic_html_file_frame
+
+	if html_file_frame is not None:
+		return html_file_frame, None, None
+
+	if md_file is None and generic_md_file is not None:
+		md_file = generic_md_file
+	if found_txt_file is None and generic_found_txt_file is not None:
+		found_txt_file = generic_found_txt_file
 			
 	# if there were images found, wrap the images in a container div
 	html_code_output = '<div class="img-container-set">' + ''.join(html_code_list) + '</div>' if len(html_code_list) > 0 else None
 
 	# return the images, and/or text file found
 	return html_code_output, md_file, found_txt_file
-
-def clean_modelname(modelname):
-	# convert the extension to lowercase if it exists
-	name, ext = os.path.splitext(modelname)
-	ext = ext.lower()
-	modelname = name + ext	
-	# remove the extension and the hash if it exists at the end of the model name (this is added by a1111) and 
-	# if the model name contains a path (which happens when a checkpoint is in a subdirectory) just return the model name portion
-	return re.sub(r"(\.pt|\.bin|\.ckpt|\.safetensors)?( \[[a-fA-F0-9]{10,12}\]|\([a-fA-F0-9]{10,12}\))?$", "", modelname).split("\\")[-1].split("/")[-1]
 
 def get_checkpoints_dirs():
 	# create list of directories
@@ -581,7 +666,7 @@ def on_ui_tabs():
 	# create a gradio block
 	with gr.Blocks() as modelpreview_interface:
 
-		gr.HTML(elem_id='modelpreview_xd_setting', value='<script id="modelpreview_xd_setting_json" type="application/json">{ "LimitSize": ' + ( "true" if shared.opts.model_preview_xd_limit_sizing else "false" ) + ' }</script>')
+		gr.HTML(elem_id='modelpreview_xd_setting', value='<script id="modelpreview_xd_setting_json" type="application/json">{ "LimitSize": ' + ( "true" if shared.opts.model_preview_xd_limit_sizing else "false" ) + ' }</script>', visible=False)
 
 		# create a tab for the checkpoint previews
 		create_tab("Checkpoints", "cp",
@@ -616,7 +701,7 @@ def on_ui_tabs():
 
 def on_ui_settings():
 	section = ('model_preview_xd', "Model Preview XD")
-	shared.opts.add_option("model_preview_xd_name_matching", shared.OptionInfo("Loose", "Name matching rule for preview files", gr.Radio, {"choices": ["Loose", "Strict", "Folder"]}, section=section))
+	shared.opts.add_option("model_preview_xd_name_matching", shared.OptionInfo("Loose", "Name matching rule for preview files", gr.Radio, {"choices": ["Loose", "Strict", "Folder", "Index"]}, section=section))
 	shared.opts.add_option("model_preview_xd_limit_sizing", shared.OptionInfo(True, "Limit the height of preivews to the height of the browser window (.html preview files are always limited regardless of this setting)", section=section))
 
 script_callbacks.on_ui_settings(on_ui_settings)

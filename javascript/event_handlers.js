@@ -148,6 +148,9 @@ onUiUpdate(function() {
         case "Folder":
           title = "Use folder name matching. Will look for a folder within your model directory that matches your model's name (case sensitive) and will show any preview files found within that folder or any subfolders of that folder. If your model is named 'mymodel.ckpt' all preview files located in '/mymodel/' will be shown.";
         break;
+        case "Index":
+          title = "If a folder contains a file 'index.txt' that lists model names, any preview files in that folder regardless of name will be associated with each model in the index file. This allows you to share preview files amoung a number of models. This matching mode will also match any file named similar to the 'Strict' matching mode to allow you to still specify preview files for specific models.";
+        break;
       }
       if (title != "") {
         // add the tooltip to the label

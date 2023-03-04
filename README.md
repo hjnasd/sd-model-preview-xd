@@ -5,7 +5,9 @@ Extension for [Automatic1111 Stable Diffusion WebUI](https://github.com/AUTOMATI
 
 ## About
 With so many new models appearing it's becoming harder to keep track of what models output what styles and what tags are used to call these styles.
-This extension allows you to create various types of preview files/notes, each with the same name as your model and have this info easily displayed for later reference in webui.
+This extension allows you to create various types of preview files/notes[^preview-files], each with the same name as your model and have this info easily displayed for later reference in webui.
+
+[^preview-files]: Generally referred to as "preview files" this refers to any file type supported by this extension including `.html`, `.txt`, `.png` etc.
 
 ## Installation
 1. From the extensions tab in web ui click install from url
@@ -22,7 +24,7 @@ This extension allows you to create various types of preview files/notes, each w
 
 For example if you have `my_model.ckpt` in `models\Stable-diffusion` then you can put `my_model.txt`, `my_model_1.jpg` and, `my_model_2.jpg` in `models\Stable-diffusion\Previews` and it will display them in the "Model Preview" tab.
 
-This extension supports the folling model types in the the default directories:
+This extension supports the following model types in the the default directories:
 
 - SD Checkpoints
 - Embeddings
@@ -33,7 +35,7 @@ This extension supports the folling model types in the the default directories:
 1. After creating the preview files and putting them in the corresponding directories, select the Model Preview tab in web ui and then the type of model you want to preview
 2. Select a model from the dropdown list. (If the model has any preview files they will be shown)
 3. Any preview png files found that also contain prompt data embedded in them will have a red "copy" button when hovering over the image. By clicking the button it will copy the prompt data to your clipboard.
-4. If you would like to filter the list of models enter text in the filter text box. The filter text will be seperated by commas and return models who have that text anywhere in its name or its associated `.tags`[^4] file.
+4. If you would like to filter the list of models enter text in the filter text box. The filter text will be separated by commas and return models who have that text anywhere in its name or its associated `.tags`[^4] file.
 
 ![screenshot](https://github.com/CurtisDS/sd-model-preview-xd/raw/main/sd-model-preview-xd.png)
 
@@ -55,17 +57,21 @@ This extension supports the folling model types in the the default directories:
 
       - When `Default view for Extra Networks` is set to `cards`:
 
-          ![image](https://user-images.githubusercontent.com/20732674/216813267-c8539ae3-c318-42fa-b5db-f89176993fbc.png)
+          ![screenshot of extra networks card link to preview](https://user-images.githubusercontent.com/20732674/216813267-c8539ae3-c318-42fa-b5db-f89176993fbc.png)
 
       - When `Default view for Extra Networks` is set to `thumbs`:
 
-          ![image](https://user-images.githubusercontent.com/20732674/216813283-2e4f874f-3afa-4088-98eb-95bff0566ec8.png)
+          ![screenshot of extra networks card link to preview](https://user-images.githubusercontent.com/20732674/216813283-2e4f874f-3afa-4088-98eb-95bff0566ec8.png)
+
+5. <a name="tips-5"></a>In the settings for the extension you can turn off the "limit height" setting to change how tall the preview panel can be.
+
+      ![screenshot of difference between limit height and not limit height](https://github.com/CurtisDS/sd-model-preview-xd/raw/main/sd-model-preview-xd-height-limit.png)
 
 ## Things to watch out for
 
 ### Name Matching Rules
 
-In the settings tab there is a page for Model Preivew XD where you can update the setting to use "Strict", "Loose", or "Folder" naming. Depending on that setting the rules for naming preview files will be slightly different.
+In the settings tab there is a page for Model Preview XD where you can update the setting to use "Strict", "Loose", "Folder", or "Index" naming. Depending on that setting the rules for naming preview files will be slightly different.
 
 - #### Strict Name Matching:
 
@@ -80,12 +86,13 @@ In the settings tab there is a page for Model Preivew XD where you can update th
   - model.preview.png
   - model.4.png
   - model.preview.7.png
+  - model.tags
 
   ***Note** that in the example png images were used but you can use png, jpg, jpeg, or webm images*
 
 - #### Loose Name Matching:
 
-  The naming rule loose name matching preview files is that your model name has to appear anywhere in the file name. Please note this has the potential to return preview files for other models that are named similarly. For example, if you have a model named `my-checkpoint.ckpt` and `my-checkpoint2.ckpt` the extension will pick up preview files meant for `my-checkpoint2` in its search for preview files for `my-checkpoint`. You can avoid this my renaming `my-checkpoint` to `my-checkpoint1` (*Make sure to also update any existing preview files*).
+  The naming rule for loose name matching is that your model name has to appear anywhere in the file name. Please note this has the potential to return preview files for other models that are named similarly. For example, if you have a model named `my-checkpoint.ckpt` and `my-checkpoint2.ckpt` the extension will pick up preview files meant for `my-checkpoint2` in its search for preview files for `my-checkpoint`. You can avoid this my renaming `my-checkpoint` to `my-checkpoint1` (*Make sure to also update any existing preview files*).
 
   Here are a number of examples that will work with loose naming assuming your model is named `model.ckpt`:
 
@@ -96,6 +103,7 @@ In the settings tab there is a page for Model Preivew XD where you can update th
   - model_preview.png
   - model.image.png
   - 3D_modelling_checkpoint.png
+  - model_tags.tags
 
   ***Note** that in the example png images were used but you can use png, jpg, jpeg, or webm images*
 
@@ -107,13 +115,43 @@ In the settings tab there is a page for Model Preivew XD where you can update th
 
   Here are a number of examples that will work with folder naming assuming your model is named `model.ckpt`:
 
-  - /Stable-diffusion/model/trigger_words.txt
-  - /Stable-diffusion/model/readme.md
-  - /Stable-diffusion/model/info.html
-  - /Stable-diffusion/model/0.png
-  - /Stable-diffusion/model/preview.png
+  - /model/trigger_words.txt
+  - /model/readme.md
+  - /model/info.html
+  - /model/0.png
+  - /model/preview.png
+  - /model/filters.tags
 
   ***Note** that in the example png images were used but you can use png, jpg, jpeg, or webm images*
+
+- #### <u>Index Matching:</u>
+
+  This acts like [Strict Name Matching](#strict-name-matching) with an addition feature. On top of matching preview files in the same manner as Strict Name Matching this mode is intended to also optionally allow multiple models to share preview files in certain cases. To do this, create a file `index.txt` and place it in a folder that contains preview files you want to be shared across models. Index files should contain the model's file names (not including extensions) each separated by a new line.
+  
+  For example:
+  ```text
+  MyModel2000_Steps
+  MyModel3000_Steps
+  MyModel4000_Steps
+  ```
+  
+  When the extension finds an index file it will scan it for model names and then scan the rest of that folder for any preview files (regardless of naming convention) and apply all preview files it finds to each model that is listed in the index file. For any model you have listed in the index file if it finds a preview file that matches the [Strict Name Matching](#strict-name-matching) convention it will only apply that preview file to that specific model. Also for preview files where you are limited to one of that type of preview file (Such as `.txt`, `.md`, and `.html` files) it will match the strict version if one exists over the general one.
+
+  For example if you have the following files in a folder:
+
+  - /MyModel/index.txt
+  - /MyModel/common.png
+  - /MyModel/trigger_words.txt
+  - /MyModel/MyModel2000_Steps.png
+  - /MyModel/MyModel2000_Steps.txt
+  - /MyModel/MyModel3000_Steps.png
+
+  `MyModel2000_Steps` will match: `common.png`, `MyModel2000_Steps.png`, and `MyModel2000_Steps.txt`.<br>
+  `MyModel3000_Steps` will match: `common.png`, `MyModel3000_Steps.png`, and `trigger_words.txt`.<br>
+  `MyModel4000_Steps` will match: `common.png`, and `trigger_words.txt`.
+
+  ***Note** that using an index file is optional and the default behavior is otherwise identical to the Strict Name Matching mode*
+
 
 ### Changing Default Directories
 
@@ -146,7 +184,7 @@ Gradio (the software Automatic1111 is built on) doesn't support linking to files
 2. The extension can detect if a preview file is outside of the install directory and alter how it handles the preview to try and avoid some of the issues with linking files in the webui. The following differences will occur:
 - **Text files**: Nothing will change, it will work the same as if it was in the install directory.
 
-- **Image files**: The images will be converted to a base64 string essensially copying the image into the html code instead of linking to a file. This may slightly increase load times but should be otherwise fine.
+- **Image files**: The images will be converted to a base64 string essentially copying the image into the html code instead of linking to a file. This may slightly increase load times but should be otherwise fine.
 
 - **Markdown files**: The preview will load but if you linked to a local image or file in the markdown - even if that file or image is in the same directory as the markdown file - it may not resolve that link. A workaround would be to upload files or images to the internet and link to them remotely instead of locally, then the links will resolve.
 
