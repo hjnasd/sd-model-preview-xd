@@ -151,6 +151,8 @@ In the settings tab there is a page for Model Preview XD where you can update th
   `MyModel4000_Steps` will match: `common.png`, and `trigger_words.txt`.
 
   ***Note** that using an index file is optional and the default behavior is otherwise identical to the Strict Name Matching mode*
+  
+  ***Also note** that the file names `common.png` and `trigger_words.txt` were only used as examples however shared preview files can be named anything you want as long as they have the appropriate file extensions.*
 
 
 ### Changing Default Directories
