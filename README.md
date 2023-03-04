@@ -65,7 +65,7 @@ This extension supports the following model types in the the default directories
 
 5. <a name="tips-5"></a>In the settings for the extension you can turn off the "limit height" setting to change how tall the preview panel can be.
 
-      ![screenshot of difference between limit height and not limit height](https://github.com/CurtisDS/sd-model-preview-xd/raw/main/sd-model-preview-xd-height-limit.png)
+      ![screenshot of difference between limit height and not limit height](https://github.com/CurtisDS/sd-model-preview-xd/raw/main/sd-model-preview-xd-height-limit.gif)
 
 ## Things to watch out for
 
