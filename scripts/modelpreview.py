@@ -190,7 +190,7 @@ def list_all_loras():
 	if additional_networks is not None:
 		# copy the list of models
 		loras_list = additional_networks.lora_models.copy()
-		# remove the None item from the lsit
+		# remove the None item from the list
 		loras_list.pop("None", None)
 		# remove hash from model
 		loras_list = [re.sub(r'\([a-fA-F0-9]{10,12}\)$', '', model) for model in loras_list.keys()]
@@ -201,7 +201,7 @@ def list_all_loras():
 	if additional_networks_builtin is not None:
 		# copy the list of models
 		loras_list = additional_networks_builtin.available_loras.copy()
-		# remove the None item from the lsit
+		# remove the None item from the list
 		loras_list.pop("None", None)
 		loras.update(loras_list.keys())
 
@@ -424,8 +424,9 @@ def search_and_display_previews(model_name, paths):
 				# check each file to see if it is a preview file
 				for filename in sorted_filenames:
 					file_path = os.path.join(dirpath, filename)
+					img_file = None
 					if shared.opts.model_preview_xd_name_matching == "Index":
-						if index_models_pattern is not None and  (index_models_pattern.match(filename) or filename.lower() == "index.txt"):
+						if (index_models_pattern is not None and  index_models_pattern.match(filename)) or filename.lower() == "index.txt":
 							# ignore preview files that strictly match any of the other models in the index file
 							continue
 						if index_has_model:
@@ -435,8 +436,8 @@ def search_and_display_previews(model_name, paths):
 								# there can only be one markdown file, if one was already found it is replaced
 								generic_md_file = file_path
 							if img_generic_pattern.match(filename):
-								# there can be many images, even spread accross the multiple paths
-								html_code_list.append(create_html_img(file_path, is_in_a1111_dir))
+								# there can be many images, even spread across the multiple paths
+								img_file = file_path
 							if txt_generic_pattern.match(filename):
 								# there can only be one text file, if one was already found it is replaced
 								generic_found_txt_file = file_path
@@ -449,11 +450,15 @@ def search_and_display_previews(model_name, paths):
 						# there can only be one markdown file, if one was already found it is replaced
 						md_file = file_path
 					if img_pattern.match(filename):
-						# there can be many images, even spread accross the multiple paths
-						html_code_list.append(create_html_img(file_path, is_in_a1111_dir))
+						# there can be many images, even spread across the multiple paths
+						img_file = file_path
 					if txt_pattern.match(filename):
 						# there can only be one text file, if one was already found it is replaced
 						found_txt_file = file_path
+					
+					# if this file was an image file append the image to the html code list
+					if img_file is not None:
+						html_code_list.append(create_html_img(img_file, is_in_a1111_dir))
 	
 	if html_file_frame is None and generic_html_file_frame is not None:
 		html_file_frame = generic_html_file_frame
@@ -512,9 +517,9 @@ def get_lora_dirs():
 	if set_dir is not None and not is_dir_in_list(directories, set_dir):
 		# WARNING: html files and markdown files that link to local files outside of the automatic1111 directory will not work correctly
 		directories.append(set_dir)
-	# add directories from the thirdparty lora extension if exists
+	# add directories from the third party lora extension if exists
 	if additional_networks is not None:
-		# use the same pattern as the additional_networds.py extention to build up a list of paths to check for lora models and preview files
+		# use the same pattern as the additional_networks.py extension to build up a list of paths to check for lora models and preview files
 		set_dir = additional_networks.lora_models_dir
 		if set_dir is not None and not is_dir_in_list(directories, set_dir):
 			directories.append(set_dir)
@@ -702,7 +707,7 @@ def on_ui_tabs():
 def on_ui_settings():
 	section = ('model_preview_xd', "Model Preview XD")
 	shared.opts.add_option("model_preview_xd_name_matching", shared.OptionInfo("Loose", "Name matching rule for preview files", gr.Radio, {"choices": ["Loose", "Strict", "Folder", "Index"]}, section=section))
-	shared.opts.add_option("model_preview_xd_limit_sizing", shared.OptionInfo(True, "Limit the height of preivews to the height of the browser window (.html preview files are always limited regardless of this setting)", section=section))
+	shared.opts.add_option("model_preview_xd_limit_sizing", shared.OptionInfo(True, "Limit the height of previews to the height of the browser window (.html preview files are always limited regardless of this setting)", section=section))
 
 script_callbacks.on_ui_settings(on_ui_settings)
 script_callbacks.on_ui_tabs(on_ui_tabs)
